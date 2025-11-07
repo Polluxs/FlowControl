@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="ForEach/logo.png" alt="ForEach Logo" width="150"/>
+</div>
+
 # ForEach
 
 Extension methods that add parallel `ForEach` iterations to `IEnumerable<T>`, `IAsyncEnumerable<T>`, and `Channel<T>`.
