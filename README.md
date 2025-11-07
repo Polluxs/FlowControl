@@ -43,6 +43,7 @@ when you need backpressure control.
 | [`LinkTo()`](#linkto---pipe-items-to-another-channel) | Forward items |
 | [`WriteAllAsync()`](#writeallasync---write-all-items-from-a-source) | Fill from source |
 
+
 ---
 ## In depth: 1-shot
 ### `ParallelAsync`
@@ -117,20 +118,21 @@ await jobs.ParallelByKeyAsync(
 
 ### Reading Operations
 
-**ToAsyncEnumerable() - Convert channel to async stream**
+#### ToAsyncEnumerable() - Convert channel to async stream
 ```csharp
 using FlowControl.Channel;
 
-var channel = Channel.CreateUnbounded<int>();
+// Without: verbose channel reader access
+while (await channel.Reader.WaitToReadAsync())
+while (channel.Reader.TryRead(out var item))
+    Process(item);
 
-// Read all items from channel as async stream
+// With: simple foreach
 await foreach (var item in channel.ToAsyncEnumerable())
-{
-    Console.WriteLine(item);
-}
+    Process(item);
 ```
 
-**ForEachAsync() - Process items sequentially**
+#### ForEachAsync() - Process items sequentially
 ```csharp
 // Process each item one at a time (sequential)
 await channel.ForEachAsync(async (item, ct) =>
@@ -140,7 +142,7 @@ await channel.ForEachAsync(async (item, ct) =>
 });
 ```
 
-**ParallelAsync() - Process items in parallel**
+#### ParallelAsync() - Process items in parallel
 ```csharp
 // Process multiple items concurrently with a global cap
 await channel.ParallelAsync(async (item, ct) =>
@@ -150,7 +152,7 @@ await channel.ParallelAsync(async (item, ct) =>
 }, maxParallel: 8);
 ```
 
-**ParallelByKeyAsync() - Per-key concurrency limits**
+#### ParallelByKeyAsync() - Per-key concurrency limits
 ```csharp
 // Limit concurrent requests per host
 await channel.ParallelByKeyAsync(
@@ -165,18 +167,18 @@ await channel.ParallelByKeyAsync(
     maxPerKey: 2);
 ```
 
-**LinkTo() - Pipe items to another channel**
+#### LinkTo() - Pipe items to another channel
 ```csharp
 var sourceChannel = Channel.CreateUnbounded<int>();
 var targetChannel = Channel.CreateUnbounded<int>();
 
 // Pipe all items to target channel
-await sourceChannel.LinkTo(targetChannel.Writer);
+await sourceChannel.LinkTo(targetChannel);
 // Target channel is automatically completed when source is done
 
 // Or with filtering
 await sourceChannel.LinkTo(
-    targetChannel.Writer,
+    targetChannel,
     filter: x => x > 10  // Only items > 10 are forwarded
 );
 // Target is still auto-completed after filtered items
@@ -184,7 +186,7 @@ await sourceChannel.LinkTo(
 
 ### Writing Operations
 
-**WriteAllAsync() - Write all items from a source**
+#### WriteAllAsync() - Write all items from a source
 ```csharp
 var channel = Channel.CreateUnbounded<int>();
 

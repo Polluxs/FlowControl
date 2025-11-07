@@ -143,7 +143,7 @@ public class ChannelExtensionsTest
         source.Writer.Complete();
 
         // Link and read
-        var linkTask = source.LinkTo(target.Writer);
+        var linkTask = source.LinkTo(target);
 
         var items = new List<int>();
         await foreach (var item in target.ToAsyncEnumerable())
@@ -170,7 +170,7 @@ public class ChannelExtensionsTest
         source.Writer.Complete();
 
         // Link with filter (only even numbers)
-        var linkTask = source.LinkTo(target.Writer, filter: x => x % 2 == 0);
+        var linkTask = source.LinkTo(target, filter: x => x % 2 == 0);
 
         var items = new List<int>();
         await foreach (var item in target.ToAsyncEnumerable())

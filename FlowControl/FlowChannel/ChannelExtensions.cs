@@ -63,20 +63,21 @@ public static class ChannelExtensions
     }
 
     /// <summary>
-    /// Pipe all items from this channel to a target channel writer, optionally filtering items.
+    /// Pipe all items from this channel to a target channel, optionally filtering items.
     /// The target channel is automatically completed when all items are processed.
     /// </summary>
     public static async Task LinkTo<T>(
         this Channel<T> channel,
-        ChannelWriter<T> target,
+        Channel<T> target,
         Func<T, bool>? filter = null,
         CancellationToken ct = default)
     {
+        var writer = target.Writer;
         await foreach (var item in channel.ToAsyncEnumerable(ct).ConfigureAwait(false))
             if (filter is null || filter(item))
-                await target.WriteAsync(item, ct).ConfigureAwait(false);
+                await writer.WriteAsync(item, ct).ConfigureAwait(false);
 
-        target.Complete();
+        writer.Complete();
     }
 
     /// <summary>
