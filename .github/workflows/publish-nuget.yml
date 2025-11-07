@@ -1,0 +1,65 @@
+name: Publish to NuGet
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to main branch
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Extract version from .csproj
+      id: extract_version
+      run: |
+        VERSION=$(grep -oP '<Version>\K[^<]+' ForEach/ForEach.csproj)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Detected version: $VERSION"
+
+    - name: Check if version exists on NuGet
+      id: check_version
+      run: |
+        PACKAGE_ID="Polluxs.ForEach"
+        VERSION="${{ steps.extract_version.outputs.version }}"
+
+        # Query NuGet API to check if version exists
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://api.nuget.org/v3-flatcontainer/$PACKAGE_ID/$VERSION/$PACKAGE_ID.$VERSION.nupkg")
+
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Version $VERSION already exists on NuGet. Skipping deployment."
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Version $VERSION does not exist on NuGet. Proceeding with deployment."
+        fi
+
+    - name: Setup .NET
+      if: steps.check_version.outputs.exists == 'false'
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      if: steps.check_version.outputs.exists == 'false'
+      run: dotnet restore
+
+    - name: Build
+      if: steps.check_version.outputs.exists == 'false'
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run tests
+      if: steps.check_version.outputs.exists == 'false'
+      run: dotnet test --configuration Release --no-build --verbosity normal
+
+    - name: Pack NuGet package
+      if: steps.check_version.outputs.exists == 'false'
+      run: dotnet pack ForEach/ForEach.csproj --configuration Release --no-build --output ./nupkg
+
+    - name: Publish to NuGet
+      if: steps.check_version.outputs.exists == 'false'
+      run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

@@ -4,6 +4,23 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>Polluxs.ForEach</PackageId>
+        <Version>0.0.1</Version>
+        <Authors>Polluxs</Authors>
+        <Description>Extension methods that add parallel ForEach iterations to IEnumerable&lt;T&gt;, IAsyncEnumerable&lt;T&gt;, and Channel&lt;T&gt;. Process items concurrently with configurable limits, collect results, and control per-key concurrency.</Description>
+        <PackageTags>parallel;foreach;async;concurrent;channel;enumerable;asyncenumerable;throttling;concurrency</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/Polluxs/ForEach</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://github.com/Polluxs/ForEach</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="../README.md" Pack="true" PackagePath="/"/>
+    </ItemGroup>
 
 </Project>
