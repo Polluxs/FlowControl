@@ -78,7 +78,7 @@ public static class ParallelExtensions
     /// <param name="maxTotalParallel">Maximum number of items being processed concurrently across all keys.</param>
     /// <param name="maxPerKey">Maximum number of items being processed concurrently per key.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static async Task ParallelAsyncByKey<T, TKey>(
+    public static async Task ParallelByKeyAsync<T, TKey>(
         this IEnumerable<T> source,
         Func<T, TKey> keySelector,
         Func<T, CancellationToken, ValueTask> body,

@@ -21,11 +21,11 @@ One-off parallel processing over collections. Run once, get results, done.
 - `IEnumerable<T>` uses `Parallel.ForEachAsync` under the hood - best for in-memory collections
 - `IAsyncEnumerable<T>` uses channels for producer-consumer pattern - best for streaming data (database queries, HTTP responses, file reads)
 
-| Method | Purpose |
-|:--|:--|
-| [`ParallelAsync`](#parallelasync) | Run async work concurrently with a global cap |
-| [`ParallelAsync<T,TResult>`](#parallelasyncttresult) | Run async work and collect results |
-| [`ParallelAsyncByKey`](#parallelasyncbykey) | Run async work with per-key concurrency limits |
+| Method | Purpose                                              |
+|:--|:-----------------------------------------------------|
+| [`ParallelAsync`](#parallelasync) | Run concurrently                                     |
+| [`ParallelAsync<T,TResult>`](#parallelasyncttresult) | Run concurrently and collect results                 |
+| [`ParallelByKeyAsync`](#parallelasyncbykey) | Limit concurrent items per key, for example: limit requests per host |
 
 ## Continuous Concurrency
 
@@ -36,12 +36,12 @@ when you need backpressure control.
 
 | Operation | Purpose |
 |:--|:--|
-| [`ReadAllAsync()`](#readallasynch---read-all-items-as-iasyncenumerable) | Read items as async stream |
+| [`ToAsyncEnumerable()`](#toasyncenumerable---convert-channel-to-async-stream) | Simplify reading |
 | [`ForEachAsync()`](#foreachasync---process-items-sequentially) | Process sequentially |
-| [`ParallelAsync()`](#parallelasync---process-items-in-parallel) | Process in parallel |
-| [`ParallelAsyncByKey()`](#parallelasyncbykey---per-key-concurrency-limits) | Per-key concurrency |
-| [`LinkTo()`](#linkto---pipe-items-to-another-channel) | Pipe to another channel |
-| [`WriteAllAsync()`](#writeallasync---write-all-items-from-a-source) | Write from source |
+| [`ParallelAsync()`](#parallelasync---process-items-in-parallel) | Process concurrently |
+| [`ParallelByKeyAsync()`](#parallelasyncbykey---per-key-concurrency-limits) | Limit per key |
+| [`LinkTo()`](#linkto---pipe-items-to-another-channel) | Forward items |
+| [`WriteAllAsync()`](#writeallasync---write-all-items-from-a-source) | Fill from source |
 
 ---
 ## In depth: 1-shot
@@ -88,12 +88,12 @@ foreach (var (url, code) in results)
 - Exception aggregation same as `ParallelAsync` (inherits from `Parallel.ForEachAsync`)
 
 
-### `ParallelAsyncByKey`
+### `ParallelByKeyAsync`
 
 Limit concurrency globally AND per key (e.g., by user, account, or host).
 
 ```csharp
-await jobs.ParallelAsyncByKey(
+await jobs.ParallelByKeyAsync(
     keySelector: j => j.AccountId,
     body: async (job, ct) =>
     {
@@ -117,14 +117,14 @@ await jobs.ParallelAsyncByKey(
 
 ### Reading Operations
 
-**ReadAllAsync() - Read all items as IAsyncEnumerable**
+**ToAsyncEnumerable() - Convert channel to async stream**
 ```csharp
 using FlowControl.Channel;
 
 var channel = Channel.CreateUnbounded<int>();
 
 // Read all items from channel as async stream
-await foreach (var item in channel.ReadAllAsync())
+await foreach (var item in channel.ToAsyncEnumerable())
 {
     Console.WriteLine(item);
 }
@@ -150,16 +150,16 @@ await channel.ParallelAsync(async (item, ct) =>
 }, maxParallel: 8);
 ```
 
-**ParallelAsyncByKey() - Per-key concurrency limits**
+**ParallelByKeyAsync() - Per-key concurrency limits**
 ```csharp
-// Limit concurrency globally AND per key (e.g., per account, user, or host)
-await channel.ParallelAsyncByKey(
-    keySelector: item => item.AccountId,
+// Limit concurrent requests per host
+await channel.ParallelByKeyAsync(
+    keySelector: item => item.Host,
     handler: async (item, ct) =>
     {
-        // Global limit: max 64 items processing at once
-        // Per-key limit: max 2 items per account at once
-        await ProcessAsync(item, ct);
+        // Global limit: max 64 requests at once
+        // Per-host limit: max 2 requests per host at once
+        await SendRequestAsync(item, ct);
     },
     maxParallel: 64,
     maxPerKey: 2);

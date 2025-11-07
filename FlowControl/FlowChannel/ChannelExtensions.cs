@@ -6,9 +6,9 @@ namespace FlowControl.FlowChannel;
 public static class ChannelExtensions
 {
     /// <summary>
-    /// Read all items from the channel as an async stream.
+    /// Convert the channel to an async enumerable stream.
     /// </summary>
-    public static async IAsyncEnumerable<T> ReadAllAsync<T>(
+    public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this Channel<T> channel,
         [System.Runtime.CompilerServices.EnumeratorCancellation]
         CancellationToken ct = default)
@@ -29,7 +29,7 @@ public static class ChannelExtensions
     {
         return Task.Run(async () =>
         {
-            await foreach (var item in channel.ReadAllAsync(ct).ConfigureAwait(false))
+            await foreach (var item in channel.ToAsyncEnumerable(ct).ConfigureAwait(false))
                 await handler(item, ct).ConfigureAwait(false);
         }, ct);
     }
@@ -43,13 +43,13 @@ public static class ChannelExtensions
         int maxParallel = 32,
         CancellationToken ct = default)
     {
-        return channel.ReadAllAsync(ct).ParallelAsync(handler, maxParallel, ct);
+        return channel.ToAsyncEnumerable(ct).ParallelAsync(handler, maxParallel, ct);
     }
 
     /// <summary>
     /// Process items from the channel in parallel with both global and per-key concurrency limits.
     /// </summary>
-    public static Task ParallelAsyncByKey<T, TKey>(
+    public static Task ParallelByKeyAsync<T, TKey>(
         this Channel<T> channel,
         Func<T, TKey> keySelector,
         Func<T, CancellationToken, ValueTask> handler,
@@ -58,8 +58,8 @@ public static class ChannelExtensions
         CancellationToken ct = default)
         where TKey : notnull
     {
-        return channel.ReadAllAsync(ct)
-            .ParallelAsyncByKey(keySelector, handler, maxParallel, maxPerKey, ct);
+        return channel.ToAsyncEnumerable(ct)
+            .ParallelByKeyAsync(keySelector, handler, maxParallel, maxPerKey, ct);
     }
 
     /// <summary>
@@ -72,7 +72,7 @@ public static class ChannelExtensions
         Func<T, bool>? filter = null,
         CancellationToken ct = default)
     {
-        await foreach (var item in channel.ReadAllAsync(ct).ConfigureAwait(false))
+        await foreach (var item in channel.ToAsyncEnumerable(ct).ConfigureAwait(false))
             if (filter is null || filter(item))
                 await target.WriteAsync(item, ct).ConfigureAwait(false);
 

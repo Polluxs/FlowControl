@@ -8,7 +8,7 @@ namespace FlowControl.Test.FlowChannel;
 public class ChannelExtensionsTest
 {
     [Fact]
-    public async Task ReadAllAsync_ReadsAllItemsFromChannel()
+    public async Task ToAsyncEnumerable_ReadsAllItemsFromChannel()
     {
         var channel = Channel.CreateUnbounded<int>();
 
@@ -20,7 +20,7 @@ public class ChannelExtensionsTest
 
         // Read all items
         var items = new List<int>();
-        await foreach (var item in channel.ReadAllAsync())
+        await foreach (var item in channel.ToAsyncEnumerable())
         {
             items.Add(item);
         }
@@ -86,7 +86,7 @@ public class ChannelExtensionsTest
     }
 
     [Fact]
-    public async Task ParallelAsyncByKey_RespectsPerKeyLimit()
+    public async Task ParallelByKeyAsync_RespectsPerKeyLimit()
     {
         var channel = Channel.CreateUnbounded<(char Key, int Value)>();
 
@@ -102,7 +102,7 @@ public class ChannelExtensionsTest
         var totalCurrent = 0;
         var totalMax = 0;
 
-        await channel.ParallelAsyncByKey(
+        await channel.ParallelByKeyAsync(
             keySelector: it => it.Key,
             handler: async (it, ct) =>
             {
@@ -146,7 +146,7 @@ public class ChannelExtensionsTest
         var linkTask = source.LinkTo(target.Writer);
 
         var items = new List<int>();
-        await foreach (var item in target.ReadAllAsync())
+        await foreach (var item in target.ToAsyncEnumerable())
         {
             items.Add(item);
         }
@@ -173,7 +173,7 @@ public class ChannelExtensionsTest
         var linkTask = source.LinkTo(target.Writer, filter: x => x % 2 == 0);
 
         var items = new List<int>();
-        await foreach (var item in target.ReadAllAsync())
+        await foreach (var item in target.ToAsyncEnumerable())
         {
             items.Add(item);
         }
@@ -195,7 +195,7 @@ public class ChannelExtensionsTest
         channel.Writer.Complete();
 
         var items = new List<int>();
-        await foreach (var item in channel.ReadAllAsync())
+        await foreach (var item in channel.ToAsyncEnumerable())
         {
             items.Add(item);
         }
@@ -224,7 +224,7 @@ public class ChannelExtensionsTest
         channel.Writer.Complete();
 
         var items = new List<int>();
-        await foreach (var item in channel.ReadAllAsync())
+        await foreach (var item in channel.ToAsyncEnumerable())
         {
             items.Add(item);
         }

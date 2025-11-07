@@ -28,7 +28,7 @@ public class ParallelExtensionsTests
     }
 
     [Fact]
-    public async Task ParallelAsyncByKey_RespectsPerKeyLimit()
+    public async Task ParallelByKeyAsync_RespectsPerKeyLimit()
     {
         // Create 60 items across 3 keys (A,B,C)
         var items = System.Linq.Enumerable.Range(0, 60).Select(i => (Key: (char)('A' + (i % 3)), Value: i)).ToArray();
@@ -38,7 +38,7 @@ public class ParallelExtensionsTests
         var totalCurrent = 0;
         var totalMax = 0;
 
-        await items.ParallelAsyncByKey(
+        await items.ParallelByKeyAsync(
             keySelector: it => it.Key,
             body: async (it, ct) =>
             {
