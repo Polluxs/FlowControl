@@ -8,6 +8,8 @@
 
 Extension methods for parallel processing with fluent syntax. Built on `Parallel.ForEachAsync` with extras like result collection and per-key limits.
 
+> **⚠️ Warning:** This package is in active development and may introduce breaking changes between versions.
+
 ## Quick Examples
 
 ### Parallel processing with concurrency limit
@@ -169,8 +171,6 @@ await channel.WriteAllAsync(FetchDataAsync());
 
 channel.Writer.Complete();
 ```
-
----
 
 ## License
 
