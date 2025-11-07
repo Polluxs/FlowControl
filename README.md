@@ -4,16 +4,51 @@
 
 # ForEach
 
-Extension methods that add parallel `ForEach` iterations to `IEnumerable<T>`, `IAsyncEnumerable<T>`, and `Channel<T>`.
+**Make .NET concurrency simple.**
+
+Extension methods for parallel processing with fluent syntax. Built on `Parallel.ForEachAsync` with extras like result collection and per-key limits.
+
+## Quick Examples
+
+### Parallel processing with concurrency limit
 
 ```csharp
-using ForEach.Enumerable;
-
-await files.ForEachParallelAsync(async (file, ct) =>
-    await ProcessAsync(file, ct), maxParallel: 10);
+// Process 100 URLs, max 20 at a time
+await urls.ForEachParallelAsync(async (url, ct) =>
+{
+    var response = await httpClient.GetAsync(url, ct);
+    Console.WriteLine($"{url}: {response.StatusCode}");
+}, maxParallel: 20);
 ```
 
-## Methods
+### Collect results from parallel operations
+
+```csharp
+// Download and collect all results
+var results = await urls.ForEachParallelAsync(async (url, ct) =>
+{
+    var content = await httpClient.GetStringAsync(url, ct);
+    return (url, content.Length);
+}, maxParallel: 20);
+
+foreach (var (url, size) in results)
+    Console.WriteLine($"{url}: {size} bytes");
+```
+
+### Per-key concurrency limits
+
+```csharp
+// Max 50 total, but only 2 per customer
+await orders.ForEachParallelByKeyAsync(
+    keySelector: order => order.CustomerId,
+    body: async (order, ct) => await ProcessOrderAsync(order, ct),
+    maxTotalParallel: 50,
+    maxPerKey: 2);
+```
+
+---
+
+## All Methods
 
 **For `IEnumerable<T>`, `IAsyncEnumerable<T>`, and `Channel<T>`:**
 
@@ -21,7 +56,7 @@ await files.ForEachParallelAsync(async (file, ct) =>
 |:--|:--|
 | [`ForEachParallelAsync`](#foreachparallelasync) | Process items concurrently with a global limit |
 | [`ForEachParallelAsync<T,TResult>`](#foreachparallelasync-with-results) | Process items concurrently and collect results |
-| [`ForEachParallelByKeyAsync`](#foreachparallelbykeysync) | Process items with both global and per-key concurrency limits |
+| [`ForEachParallelByKeyAsync`](#foreachparallelbykeyasync) | Process items with both global and per-key concurrency limits |
 
 **For `Channel<T>` only:**
 
@@ -33,7 +68,7 @@ await files.ForEachParallelAsync(async (file, ct) =>
 
 
 ---
-## Examples
+## Code examples for every method
 
 ### ForEachParallelAsync
 
@@ -64,7 +99,7 @@ Process items concurrently and collect results.
 ```csharp
 var results = await urls.ForEachParallelAsync(async (url, ct) =>
 {
-    using var r = await http.GetAsync(url, ct);
+    using var r = await httpClient.GetAsync(url, ct);
     return (url, r.StatusCode);
 }, maxParallel: 16);
 
