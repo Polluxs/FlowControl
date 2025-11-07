@@ -1,7 +1,45 @@
 # ForEach
 
-Helpers for running async work in parallel.
+Extension methods that add parallel `ForEach` iterations to `IEnumerable<T>`, `IAsyncEnumerable<T>`, and `Channel<T>`.
+
+Works on lists, arrays, collections, async streams, channels - anything that implements these interfaces.
+
 .NET 8 only, use at own risk, just sugar syntax for fast fun to get things done.
+
+**Quick examples:**
+
+```csharp
+using ForEach.Enumerable;
+
+// Simple parallel processing - works on arrays, lists, any IEnumerable<T>
+string[] files = Directory.GetFiles("/data");
+await files.ForEachParallelAsync(async (file, ct) =>
+{
+    var content = await File.ReadAllTextAsync(file, ct);
+    await ProcessAsync(content, ct);
+}, maxParallel: 10);
+
+// Limit by key - max 100 total requests, max 2 per host
+var requests = new[]
+{
+    new Request("https://api1.com/users"),
+    new Request("https://api1.com/posts"),
+    new Request("https://api2.com/data"),
+    // ... hundreds more
+};
+
+await requests.ForEachParallelByKeyAsync(
+    keySelector: req => req.Host,
+    body: async (req, ct) =>
+    {
+        var response = await httpClient.GetAsync(req.Url, ct);
+        Console.WriteLine($"{req.Url}: {response.StatusCode}");
+    },
+    maxTotalParallel: 100,
+    maxPerKey: 2);
+
+// Works on IEnumerable<T>, IAsyncEnumerable<T>, and Channel<T>
+```
 
 ## Why This Exists
 
@@ -9,59 +47,57 @@ I love .NET to make things "quick and dirty" which is maybe ironic as .NET is ty
 
 Also having fun with AI building this, so it might not be up to standards. I want to get an idea first of what I want and build it "quick" - planning to only fix things as I go. It's more for personal "get it done quick" than to share.
 
-## 1-shot Concurrency
+## ForEach Methods
 
-One-off parallel processing over collections. Run once, get results, done.
+The main parallel processing methods work on Enumerables, IAsync, and Channels:
 
-**Works with both:**
-- `IEnumerable<T>` - Regular collections (use `FlowControl.FlowEnumerable`)
-- `IAsyncEnumerable<T>` - Async streams (use `FlowControl.FlowAsyncEnumerable`)
+### `IEnumerable<T>` (`using ForEach.Enumerable;`)
+Works on: `List<T>`, `T[]` (arrays), `HashSet<T>`, `Dictionary<K,V>`, LINQ queries, or anything implementing `IEnumerable<T>`
 
-**Key difference:**
-- `IEnumerable<T>` uses `Parallel.ForEachAsync` under the hood - best for in-memory collections
-- `IAsyncEnumerable<T>` uses channels for producer-consumer pattern - best for streaming data (database queries, HTTP responses, file reads)
+### `IAsyncEnumerable<T>` (`using ForEach.AsyncEnumerable;`)
+Works on: async LINQ, `await foreach` sources, database queries (EF Core), HTTP response streams, file I/O
 
-| Method | Purpose                                              |
-|:--|:-----------------------------------------------------|
-| [`ForEachParallelAsync`](#parallelasync) | Run concurrently                                     |
-| [`ForEachParallelAsync<T,TResult>`](#parallelasyncttresult) | Run concurrently and collect results                 |
-| [`ForEachParallelByKeyAsync`](#parallelasyncbykey) | Limit concurrent items per key, for example: limit requests per host |
+### `Channel<T>` (`using ForEach.Channel;`)
+Works on: `Channel<T>` for long-running pipelines, producer-consumer patterns, backpressure control
 
-## Continuous Concurrency
+---
 
-Ongoing stream processing with `Channel<T>`. Use channels for long-running pipelines, producer-consumer patterns, or
-when you need backpressure control.
+**All three types support these methods:**
 
-**All operations work on `Channel<T>` directly** - no need to type `.Reader` or `.Writer` every time.
+| Method | Purpose |
+|:--|:--|
+| [`ForEachParallelAsync`](#foreachparallelasync) | Process items concurrently with a global limit |
+| [`ForEachParallelAsync<T,TResult>`](#foreachparallelasyncttresult) | Process items concurrently and collect results |
+| [`ForEachParallelByKeyAsync`](#foreachparallelbykeysync) | Process items with both global and per-key concurrency limits |
 
-**Basic Operations:**
+**`Channel<T>` also supports:**
 
-| Operation                                                                                          | Purpose                                                                           |
-|:---------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------|
-| [`channel.WriteAllAsync()`](#writeallasync---write-all-items-from-a-source)                  | Fill from source                                                                  |
-| [`channel.ReadAllAsync()`](#readallasync---read-items-as-async-stream) | Process sequentially |
-| [`channel.ForEachAsync()`](#foreachasync---process-items-sequentially)          | Process sequentially |
+| Method | Purpose |
+|:--|:--|
+| [`channel.ForEachAsync()`](#foreachasync---process-items-sequentially) | Process items sequentially (one at a time) |
 
-**Concurrency Operations:**
+---
 
-| Operation                                                                                       | Purpose |
-|:------------------------------------------------------------------------------------------------|:--|
-| [`channel.ForEachParallelAsync()`](#parallelasync---process-items-in-parallel)            | Process concurrently |
-| [`channel.ForEachParallelByKeyAsync()`](#parallelasyncbykey---per-key-concurrency-limits) | Limit per key |
+## Additional Methods
 
-**Note:** `channel.LinkTo(otherChannel, filter)` was considered for routing items between channels,
-but would require a different channel implementation to avoid infinite read loops when items are
-written back to the source. May explore this in a future version.
+### For `Channel<T>` only (`using ForEach.Channel;`)
+
+These helper methods work directly on `Channel<T>` - no need to type `.Reader` or `.Writer`:
+
+| Method | Purpose |
+|:--|:--|
+| [`channel.ReadAllAsync()`](#readallasync---read-items-as-async-stream) | Convert channel to `IAsyncEnumerable<T>` |
+| [`channel.WriteAllAsync(source)`](#writeallasync---write-all-items-from-a-source) | Write all items from `IEnumerable<T>` or `IAsyncEnumerable<T>` into channel |
 
 
 ---
-## In depth: 1-shot
+## In-depth: ForEach Methods
 ### `ForEachParallelAsync`
 
 Run async operations for an enumerable with a concurrency limit.
 
 ```csharp
-using FlowControl.Enumerable; // or FlowControl.AsyncEnumerable
+using ForEach.Enumerable; // or ForEach.AsyncEnumerable
 
 await files.ForEachParallelAsync(async (path, ct) =>
 {
@@ -124,13 +160,13 @@ await jobs.ForEachParallelByKeyAsync(
 
 ---
 
-## In-depth: Continuous Concurrency
+## In-depth: Additional Methods
 
-### Basic Operations
+### Channel Helper Methods
 
 #### ReadAllAsync() - Read items as async stream
 ```csharp
-using FlowControl.Channel;
+using ForEach.Channel;
 
 // Without: verbose channel reader access
 while (await channel.Reader.WaitToReadAsync())
@@ -156,8 +192,6 @@ await channel.WriteAllAsync(FetchDataAsync());
 channel.Writer.Complete();
 ```
 
-### Concurrency Operations
-
 #### ForEachAsync() - Process items sequentially
 ```csharp
 // Process each item one at a time (sequential)
@@ -166,31 +200,6 @@ await channel.ForEachAsync(async (item, ct) =>
     // Items processed in order, one after another
     await ProcessAsync(item, ct);
 });
-```
-
-#### ForEachParallelAsync() - Process items in parallel
-```csharp
-// Process multiple items concurrently with a global cap
-await channel.ForEachParallelAsync(async (item, ct) =>
-{
-    // Up to 8 items being processed at the same time
-    await ProcessAsync(item, ct);
-}, maxParallel: 8);
-```
-
-#### ForEachParallelByKeyAsync() - Per-key concurrency limits
-```csharp
-// Limit concurrent requests per host
-await channel.ForEachParallelByKeyAsync(
-    keySelector: item => item.Host,
-    handler: async (item, ct) =>
-    {
-        // Global limit: max 64 requests at once
-        // Per-host limit: max 2 requests per host at once
-        await SendRequestAsync(item, ct);
-    },
-    maxParallel: 64,
-    maxPerKey: 2);
 ```
 
 ---
