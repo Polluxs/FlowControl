@@ -3,15 +3,11 @@
 Helpers for running async work in parallel.
 .NET 8 only, use at own risk, just sugar syntax for fast fun to get things done.
 
----
-
 ## Why This Exists
 
 I love .NET to make things "quick and dirty" which is maybe ironic as .NET is typically known as a rather "enterprise" heavy language. Anyway from that perspective I love .NET to do things quick. Hence I am making a fun package for myself to build things "faster". This is what I am just "collecting" here. Feel free to take a look!
 
 Also having fun with AI building this, so it might not be up to standards. I want to get an idea first of what I want and build it "quick" - planning to only fix things as I go. It's more for personal "get it done quick" than to share.
-
----
 
 ## 1-shot Concurrency
 
@@ -31,9 +27,25 @@ One-off parallel processing over collections. Run once, get results, done.
 | [`ParallelAsync<T,TResult>`](#parallelasyncttresult) | Run async work and collect results |
 | [`ParallelAsyncByKey`](#parallelasyncbykey) | Run async work with per-key concurrency limits |
 
----
+## Continuous Concurrency
 
-## `ParallelAsync`
+Ongoing stream processing with `Channel<T>`. Use channels for long-running pipelines, producer-consumer patterns, or
+when you need backpressure control.
+
+**All operations work on `Channel<T>` directly** - no need to type `.Reader` or `.Writer` every time.
+
+| Operation | Purpose |
+|:--|:--|
+| [`ReadAllAsync()`](#readallasynch---read-all-items-as-iasyncenumerable) | Read items as async stream |
+| [`ForEachAsync()`](#foreachasync---process-items-sequentially) | Process sequentially |
+| [`ParallelAsync()`](#parallelasync---process-items-in-parallel) | Process in parallel |
+| [`ParallelAsyncByKey()`](#parallelasyncbykey---per-key-concurrency-limits) | Per-key concurrency |
+| [`LinkTo()`](#linkto---pipe-items-to-another-channel) | Pipe to another channel |
+| [`WriteAllAsync()`](#writeallasync---write-all-items-from-a-source) | Write from source |
+
+---
+## In depth: 1-shot
+### `ParallelAsync`
 
 Run async operations for an enumerable with a concurrency limit.
 
@@ -54,9 +66,8 @@ await files.ParallelAsync(async (path, ct) =>
   - `IEnumerable<T>`: Aggregates via `Parallel.ForEachAsync` → `AggregateException`
   - `IAsyncEnumerable<T>`: Aggregates via `Task.WhenAll` → `AggregateException`
 
----
 
-## `ParallelAsync<T,TResult>`
+### `ParallelAsync<T,TResult>`
 
 Same, but returns results.
 
@@ -76,9 +87,8 @@ foreach (var (url, code) in results)
 - Uses `ConcurrentBag` under the hood
 - Exception aggregation same as `ParallelAsync` (inherits from `Parallel.ForEachAsync`)
 
----
 
-## `ParallelAsyncByKey`
+### `ParallelAsyncByKey`
 
 Limit concurrency globally AND per key (e.g., by user, account, or host).
 
@@ -100,26 +110,10 @@ await jobs.ParallelAsyncByKey(
 - Enumerates source only once (no materialization required)
 - Aggregates exceptions via `Task.WhenAll` - multiple failures collected into an `AggregateException`
 
----
-
-## Continuous Concurrency
-
-Ongoing stream processing with `Channel<T>`. Use channels for long-running pipelines, producer-consumer patterns, or when you need backpressure control.
-
-**All operations work on `Channel<T>` directly** - no need to type `.Reader` or `.Writer` every time.
-
-| Operation | Purpose |
-|:--|:--|
-| [`ReadAllAsync()`](#readallasynch---read-all-items-as-iasyncenumerable) | Read items as async stream |
-| [`ForEachAsync()`](#foreachasync---process-items-sequentially) | Process sequentially |
-| [`ParallelAsync()`](#parallelasync---process-items-in-parallel) | Process in parallel |
-| [`ParallelAsyncByKey()`](#parallelasyncbykey---per-key-concurrency-limits) | Per-key concurrency |
-| [`LinkTo()`](#linkto---pipe-items-to-another-channel) | Pipe to another channel |
-| [`WriteAllAsync()`](#writeallasync---write-all-items-from-a-source) | Write from source |
 
 ---
 
-## Channel Extensions
+## In-depth: Continuous Concurrency
 
 ### Reading Operations
 
