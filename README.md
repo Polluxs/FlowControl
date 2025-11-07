@@ -4,7 +4,7 @@ Extension methods that add parallel `ForEach` iterations to `IEnumerable<T>`, `I
 
 Works on lists, arrays, collections, async streams, channels - anything that implements these interfaces.
 
-.NET 8 only, use at own risk, just sugar syntax for fast fun to get things done.
+.NET 8 only, use at own risk, it's not battle tested code.
 
 **Quick examples:**
 
@@ -18,6 +18,17 @@ await files.ForEachParallelAsync(async (file, ct) =>
     var content = await File.ReadAllTextAsync(file, ct);
     await ProcessAsync(content, ct);
 }, maxParallel: 10);
+
+// Parallel processing with results
+string[] urls = ["https://api1.com", "https://api2.com", "https://api3.com"];
+var results = await urls.ForEachParallelAsync(async (url, ct) =>
+{
+    var response = await httpClient.GetAsync(url, ct);
+    return (url, response.StatusCode);
+}, maxParallel: 5);
+
+foreach (var (url, status) in results)
+    Console.WriteLine($"{url}: {status}");
 
 // Limit by key - max 100 total requests, max 2 per host
 var requests = new[]
@@ -40,12 +51,6 @@ await requests.ForEachParallelByKeyAsync(
 
 // Works on IEnumerable<T>, IAsyncEnumerable<T>, and Channel<T>
 ```
-
-## Why This Exists
-
-I love .NET to make things "quick and dirty" which is maybe ironic as .NET is typically known as a rather "enterprise" heavy language. Anyway from that perspective I love .NET to do things quick. Hence I am making a fun package for myself to build things "faster". This is what I am just "collecting" here. Feel free to take a look!
-
-Also having fun with AI building this, so it might not be up to standards. I want to get an idea first of what I want and build it "quick" - planning to only fix things as I go. It's more for personal "get it done quick" than to share.
 
 ## ForEach Methods
 
@@ -206,4 +211,4 @@ await channel.ForEachAsync(async (item, ct) =>
 
 ## License
 
-MIT — copy, use, modify, ignore.
+MIT = copy, use, modify, ignore.
