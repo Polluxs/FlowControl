@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using FlowControl.EnumerableFlow;
+using FlowControl.EnumerableControl;
 using FluentAssertions;
 
-namespace FlowControl.Test.EnumerableFlow;
+namespace FlowControl.Test.EnumerableControl;
 
 public class ParallelAsyncControlTests
 {

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
-namespace FlowControl.EnumerableFlow;
+namespace FlowControl.EnumerableControl;
 
 /// <summary>
 /// Parallel helpers for running asynchronous work over <see cref="IEnumerable{T}"/>.
