@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
-namespace FlowControl.FlowAsyncEnumerable;
+namespace ForEach.FlowAsyncEnumerable;
 
 /// <summary>
 /// Parallel helpers for running asynchronous work over <see cref="IAsyncEnumerable{T}"/>.
@@ -16,7 +16,7 @@ public static class ParallelExtensions
     /// <param name="body">The async delegate to run per item.</param>
     /// <param name="maxParallel">Maximum number of concurrent operations.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static async Task ParallelAsync<T>(
+    public static async Task ForEachParallelAsync<T>(
         this IAsyncEnumerable<T> source,
         Func<T, CancellationToken, ValueTask> body,
         int maxParallel = 32,
@@ -68,7 +68,7 @@ public static class ParallelExtensions
     /// <param name="selector">Async transform that produces a result per item.</param>
     /// <param name="maxParallel">Maximum concurrency.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static async Task<List<TResult>> ParallelAsync<T, TResult>(
+    public static async Task<List<TResult>> ForEachParallelAsync<T, TResult>(
         this IAsyncEnumerable<T> source,
         Func<T, CancellationToken, ValueTask<TResult>> selector,
         int maxParallel = 32,
@@ -80,7 +80,7 @@ public static class ParallelExtensions
 
         var bag = new ConcurrentBag<TResult>();
 
-        await source.ParallelAsync(
+        await source.ForEachParallelAsync(
             async (item, token) =>
             {
                 var r = await selector(item, token);
@@ -104,7 +104,7 @@ public static class ParallelExtensions
     /// <param name="maxTotalParallel">Maximum number of items being processed concurrently across all keys.</param>
     /// <param name="maxPerKey">Maximum number of items being processed concurrently per key.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static async Task ParallelByKeyAsync<T, TKey>(
+    public static async Task ForEachParallelByKeyAsync<T, TKey>(
         this IAsyncEnumerable<T> source,
         Func<T, TKey> keySelector,
         Func<T, CancellationToken, ValueTask> body,

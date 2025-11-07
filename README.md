@@ -1,4 +1,4 @@
-# FlowControl
+# ForEach
 
 Helpers for running async work in parallel.
 .NET 8 only, use at own risk, just sugar syntax for fast fun to get things done.
@@ -23,9 +23,9 @@ One-off parallel processing over collections. Run once, get results, done.
 
 | Method | Purpose                                              |
 |:--|:-----------------------------------------------------|
-| [`ParallelAsync`](#parallelasync) | Run concurrently                                     |
-| [`ParallelAsync<T,TResult>`](#parallelasyncttresult) | Run concurrently and collect results                 |
-| [`ParallelByKeyAsync`](#parallelasyncbykey) | Limit concurrent items per key, for example: limit requests per host |
+| [`ForEachParallelAsync`](#parallelasync) | Run concurrently                                     |
+| [`ForEachParallelAsync<T,TResult>`](#parallelasyncttresult) | Run concurrently and collect results                 |
+| [`ForEachParallelByKeyAsync`](#parallelasyncbykey) | Limit concurrent items per key, for example: limit requests per host |
 
 ## Continuous Concurrency
 
@@ -46,8 +46,8 @@ when you need backpressure control.
 
 | Operation                                                                                       | Purpose |
 |:------------------------------------------------------------------------------------------------|:--|
-| [`channel.ParallelAsync()`](#parallelasync---process-items-in-parallel)            | Process concurrently |
-| [`channel.ParallelByKeyAsync()`](#parallelasyncbykey---per-key-concurrency-limits) | Limit per key |
+| [`channel.ForEachParallelAsync()`](#parallelasync---process-items-in-parallel)            | Process concurrently |
+| [`channel.ForEachParallelByKeyAsync()`](#parallelasyncbykey---per-key-concurrency-limits) | Limit per key |
 
 **Note:** `channel.LinkTo(otherChannel, filter)` was considered for routing items between channels,
 but would require a different channel implementation to avoid infinite read loops when items are
@@ -56,14 +56,14 @@ written back to the source. May explore this in a future version.
 
 ---
 ## In depth: 1-shot
-### `ParallelAsync`
+### `ForEachParallelAsync`
 
 Run async operations for an enumerable with a concurrency limit.
 
 ```csharp
 using FlowControl.Enumerable; // or FlowControl.AsyncEnumerable
 
-await files.ParallelAsync(async (path, ct) =>
+await files.ForEachParallelAsync(async (path, ct) =>
 {
     var content = await File.ReadAllTextAsync(path, ct);
     var upper = content.ToUpperInvariant();
@@ -78,12 +78,12 @@ await files.ParallelAsync(async (path, ct) =>
   - `IAsyncEnumerable<T>`: Aggregates via `Task.WhenAll` → `AggregateException`
 
 
-### `ParallelAsync<T,TResult>`
+### `ForEachParallelAsync<T,TResult>`
 
 Same, but returns results.
 
 ```csharp
-var results = await urls.ParallelAsync(async (url, ct) =>
+var results = await urls.ForEachParallelAsync(async (url, ct) =>
 {
     using var r = await http.GetAsync(url, ct);
     return (url, r.StatusCode);
@@ -96,15 +96,15 @@ foreach (var (url, code) in results)
 - Output order is arbitrary (not guaranteed)
 - Works with any return type
 - Uses `ConcurrentBag` under the hood
-- Exception aggregation same as `ParallelAsync` (inherits from `Parallel.ForEachAsync`)
+- Exception aggregation same as `ForEachParallelAsync` (inherits from `Parallel.ForEachAsync`)
 
 
-### `ParallelByKeyAsync`
+### `ForEachParallelByKeyAsync`
 
 Limit concurrency globally AND per key (e.g., by user, account, or host).
 
 ```csharp
-await jobs.ParallelByKeyAsync(
+await jobs.ForEachParallelByKeyAsync(
     keySelector: j => j.AccountId,
     body: async (job, ct) =>
     {
@@ -168,20 +168,20 @@ await channel.ForEachAsync(async (item, ct) =>
 });
 ```
 
-#### ParallelAsync() - Process items in parallel
+#### ForEachParallelAsync() - Process items in parallel
 ```csharp
 // Process multiple items concurrently with a global cap
-await channel.ParallelAsync(async (item, ct) =>
+await channel.ForEachParallelAsync(async (item, ct) =>
 {
     // Up to 8 items being processed at the same time
     await ProcessAsync(item, ct);
 }, maxParallel: 8);
 ```
 
-#### ParallelByKeyAsync() - Per-key concurrency limits
+#### ForEachParallelByKeyAsync() - Per-key concurrency limits
 ```csharp
 // Limit concurrent requests per host
-await channel.ParallelByKeyAsync(
+await channel.ForEachParallelByKeyAsync(
     keySelector: item => item.Host,
     handler: async (item, ct) =>
     {

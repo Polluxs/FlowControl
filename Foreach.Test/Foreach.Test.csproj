@@ -22,7 +22,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\FlowControl\FlowControl.csproj" />
+      <ProjectReference Include="..\ForEach\ForEach.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowControl", "FlowControl\FlowControl.csproj", "{EA121FAA-FBDC-40B4-9FD5-4EA373A36A83}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForEach", "ForEach\ForEach.csproj", "{EA121FAA-FBDC-40B4-9FD5-4EA373A36A83}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowControl.Test", "FlowControl.Test\FlowControl.Test.csproj", "{EED43D35-9C53-4138-AE54-6DA8372729ED}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Foreach.Test", "Foreach.Test\Foreach.Test.csproj", "{EED43D35-9C53-4138-AE54-6DA8372729ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

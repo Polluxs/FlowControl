@@ -1,7 +1,7 @@
 using System.Threading.Channels;
-using FlowControl.FlowAsyncEnumerable;
+using ForEach.FlowAsyncEnumerable;
 
-namespace FlowControl.FlowChannel;
+namespace ForEach.FlowChannel;
 
 public static class ChannelExtensions
 {
@@ -37,19 +37,19 @@ public static class ChannelExtensions
     /// <summary>
     /// Process items from the channel in parallel with a global concurrency limit.
     /// </summary>
-    public static Task ParallelAsync<T>(
+    public static Task ForEachParallelAsync<T>(
         this Channel<T> channel,
         Func<T, CancellationToken, ValueTask> handler,
         int maxParallel = 32,
         CancellationToken ct = default)
     {
-        return channel.ReadAllAsync(ct).ParallelAsync(handler, maxParallel, ct);
+        return channel.ReadAllAsync(ct).ForEachParallelAsync(handler, maxParallel, ct);
     }
 
     /// <summary>
     /// Process items from the channel in parallel with both global and per-key concurrency limits.
     /// </summary>
-    public static Task ParallelByKeyAsync<T, TKey>(
+    public static Task ForEachParallelByKeyAsync<T, TKey>(
         this Channel<T> channel,
         Func<T, TKey> keySelector,
         Func<T, CancellationToken, ValueTask> handler,
@@ -59,7 +59,7 @@ public static class ChannelExtensions
         where TKey : notnull
     {
         return channel.ReadAllAsync(ct)
-            .ParallelByKeyAsync(keySelector, handler, maxParallel, maxPerKey, ct);
+            .ForEachParallelByKeyAsync(keySelector, handler, maxParallel, maxPerKey, ct);
     }
 
     /// <summary>

@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
-using FlowControl.FlowChannel;
+using ForEach.FlowChannel;
 using FluentAssertions;
 
-namespace FlowControl.Test.FlowChannel;
+namespace Foreach.Test.FlowChannel;
 
 public class ChannelExtensionsTest
 {
@@ -58,7 +58,7 @@ public class ChannelExtensionsTest
     }
 
     [Fact]
-    public async Task ParallelAsync_ProcessesItemsInParallel()
+    public async Task ForEachParallelAsync_ProcessesItemsInParallel()
     {
         var channel = Channel.CreateUnbounded<int>();
         var current = 0;
@@ -72,7 +72,7 @@ public class ChannelExtensionsTest
         }
         channel.Writer.Complete();
 
-        await channel.ParallelAsync(async (_, ct) =>
+        await channel.ForEachParallelAsync(async (_, ct) =>
         {
             var now = Interlocked.Increment(ref current);
             InterlockedExtensions.Max(ref maxObserved, now);
@@ -86,7 +86,7 @@ public class ChannelExtensionsTest
     }
 
     [Fact]
-    public async Task ParallelByKeyAsync_RespectsPerKeyLimit()
+    public async Task ForEachParallelByKeyAsync_RespectsPerKeyLimit()
     {
         var channel = Channel.CreateUnbounded<(char Key, int Value)>();
 
@@ -102,7 +102,7 @@ public class ChannelExtensionsTest
         var totalCurrent = 0;
         var totalMax = 0;
 
-        await channel.ParallelByKeyAsync(
+        await channel.ForEachParallelByKeyAsync(
             keySelector: it => it.Key,
             handler: async (it, ct) =>
             {

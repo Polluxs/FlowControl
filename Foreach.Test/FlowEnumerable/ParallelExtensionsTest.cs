@@ -1,30 +1,20 @@
 using System.Collections.Concurrent;
-using FlowControl.FlowAsyncEnumerable;
+using ForEach.FlowEnumerable;
 using FluentAssertions;
 
-namespace FlowControl.Test.FlowAsyncEnumerable;
+namespace Foreach.Test.FlowEnumerable;
 
-public class ParallelExtensionsTest
+public class ParallelExtensionsTests
 {
-    private static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(IEnumerable<T> source)
-    {
-        foreach (var item in source)
-        {
-            await Task.Yield();
-            yield return item;
-        }
-    }
-
     [Fact]
-    public async Task ParallelAsync_ProcessesAllItems_AndHonorsMaxParallel()
+    public async Task ForEachParallelAsync_ProcessesAllItems_AndHonorsMaxParallel()
     {
-        var items = Enumerable.Range(1, 100).ToArray();
-        var asyncItems = ToAsyncEnumerable(items);
+        var items = System.Linq.Enumerable.Range(1, 100).ToArray();
         var current = 0;
         var maxObserved = 0;
         var processed = 0;
 
-        await asyncItems.ParallelAsync(async (_, ct) =>
+        await items.ForEachParallelAsync(async (_, ct) =>
         {
             var now = Interlocked.Increment(ref current);
             InterlockedExtensions.Max(ref maxObserved, now);
@@ -38,18 +28,17 @@ public class ParallelExtensionsTest
     }
 
     [Fact]
-    public async Task ParallelByKeyAsync_RespectsPerKeyLimit()
+    public async Task ForEachParallelByKeyAsync_RespectsPerKeyLimit()
     {
         // Create 60 items across 3 keys (A,B,C)
-        var items = Enumerable.Range(0, 60).Select(i => (Key: (char)('A' + (i % 3)), Value: i)).ToArray();
-        var asyncItems = ToAsyncEnumerable(items);
+        var items = System.Linq.Enumerable.Range(0, 60).Select(i => (Key: (char)('A' + (i % 3)), Value: i)).ToArray();
 
         var perKeyCurrent = new ConcurrentDictionary<char, int>();
         var perKeyMax = new ConcurrentDictionary<char, int>();
         var totalCurrent = 0;
         var totalMax = 0;
 
-        await asyncItems.ParallelByKeyAsync(
+        await items.ForEachParallelByKeyAsync(
             keySelector: it => it.Key,
             body: async (it, ct) =>
             {
@@ -77,12 +66,10 @@ public class ParallelExtensionsTest
     }
 
     [Fact]
-    public async Task ParallelAsync_ReturnsResults()
+    public async Task ForEachParallelAsync_ReturnsResults()
     {
-        var items = Enumerable.Range(1, 20).ToList();
-        var asyncItems = ToAsyncEnumerable(items);
-
-        var results = await asyncItems.ParallelAsync(async (x, ct) =>
+        var items = System.Linq.Enumerable.Range(1, 20).ToList();
+        var results = await items.ForEachParallelAsync(async (x, ct) =>
         {
             await Task.Delay(5, ct);
             return x * x;
@@ -93,17 +80,15 @@ public class ParallelExtensionsTest
     }
 
     [Fact]
-    public async Task ParallelAsync_CanBeCancelled()
+    public async Task ForEachParallelAsync_CanBeCancelled()
     {
         var cts = new CancellationTokenSource();
         cts.CancelAfter(50);
 
-        var items = Enumerable.Range(0, 1000);
-        var asyncItems = ToAsyncEnumerable(items);
-
+        var items = System.Linq.Enumerable.Range(0, 1000);
         Func<Task> act = async () =>
         {
-            await asyncItems.ParallelAsync(async (_, ct) =>
+            await items.ForEachParallelAsync(async (_, ct) =>
             {
                 await Task.Delay(10, ct);
             }, maxParallel: 32, ct: cts.Token);
@@ -113,14 +98,12 @@ public class ParallelExtensionsTest
     }
 
     [Fact]
-    public async Task ParallelAsync_AggregatesExceptions()
+    public async Task ForEachParallelAsync_AggregatesExceptions()
     {
-        var items = Enumerable.Range(1, 20);
-        var asyncItems = ToAsyncEnumerable(items);
-
+        var items = System.Linq.Enumerable.Range(1, 20);
         Func<Task> act = async () =>
         {
-            await asyncItems.ParallelAsync(async (i, ct) =>
+            await items.ForEachParallelAsync(async (i, ct) =>
             {
                 await Task.Delay(1, ct);
                 if (i % 5 == 0) throw new InvalidOperationException("boom");
