@@ -1,12 +1,12 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
-namespace FlowControl.EnumerableControl;
+namespace FlowControl.FlowAsyncEnumerable;
 
 /// <summary>
-/// Parallel helpers for running asynchronous work over <see cref="IEnumerable{T}"/>.
+/// Parallel helpers for running asynchronous work over <see cref="IAsyncEnumerable{T}"/>.
 /// </summary>
-public static class ParallelControlAsync
+public static class ParallelExtensions
 {
     /// <summary>
     /// Run asynchronous work for each item with a global concurrency cap.
@@ -16,8 +16,8 @@ public static class ParallelControlAsync
     /// <param name="body">The async delegate to run per item.</param>
     /// <param name="maxParallel">Maximum number of concurrent operations.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static Task ParallelAsync<T>(
-        this IEnumerable<T> source,
+    public static async Task ParallelAsync<T>(
+        this IAsyncEnumerable<T> source,
         Func<T, CancellationToken, ValueTask> body,
         int maxParallel = 32,
         CancellationToken ct = default)
@@ -26,10 +26,36 @@ public static class ParallelControlAsync
         ArgumentNullException.ThrowIfNull(body);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxParallel, 0);
 
-        return Parallel.ForEachAsync(
-            source,
-            new ParallelOptions { MaxDegreeOfParallelism = maxParallel, CancellationToken = ct },
-            (item, token) => body(item, token));
+        var channel = Channel.CreateBounded<T>(maxParallel);
+
+        // Producer: feed items from async enumerable into channel
+        var producer = Task.Run(async () =>
+        {
+            try
+            {
+                await foreach (var item in source.WithCancellation(ct).ConfigureAwait(false))
+                {
+                    await channel.Writer.WriteAsync(item, ct).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                channel.Writer.Complete();
+            }
+        }, ct);
+
+        // Consumers: process items from channel
+        var consumers = Enumerable.Range(0, maxParallel)
+            .Select(_ => Task.Run(async () =>
+            {
+                await foreach (var item in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
+                {
+                    await body(item, ct).ConfigureAwait(false);
+                }
+            }, ct))
+            .ToArray();
+
+        await Task.WhenAll(consumers.Append(producer));
     }
 
     /// <summary>
@@ -43,7 +69,7 @@ public static class ParallelControlAsync
     /// <param name="maxParallel">Maximum concurrency.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task<List<TResult>> ParallelAsync<T, TResult>(
-        this IEnumerable<T> source,
+        this IAsyncEnumerable<T> source,
         Func<T, CancellationToken, ValueTask<TResult>> selector,
         int maxParallel = 32,
         CancellationToken ct = default)
@@ -79,7 +105,7 @@ public static class ParallelControlAsync
     /// <param name="maxPerKey">Maximum number of items being processed concurrently per key.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task ParallelAsyncByKey<T, TKey>(
-        this IEnumerable<T> source,
+        this IAsyncEnumerable<T> source,
         Func<T, TKey> keySelector,
         Func<T, CancellationToken, ValueTask> body,
         int maxTotalParallel = 32,
@@ -101,7 +127,7 @@ public static class ParallelControlAsync
         {
             try
             {
-                foreach (var item in source)
+                await foreach (var item in source.WithCancellation(ct).ConfigureAwait(false))
                 {
                     ct.ThrowIfCancellationRequested();
                     var key = keySelector(item);

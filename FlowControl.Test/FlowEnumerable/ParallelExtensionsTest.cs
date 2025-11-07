@@ -1,15 +1,15 @@
 using System.Collections.Concurrent;
-using FlowControl.EnumerableControl;
+using FlowControl.FlowEnumerable;
 using FluentAssertions;
 
-namespace FlowControl.Test.EnumerableControl;
+namespace FlowControl.Test.FlowEnumerable;
 
-public class ParallelControlAsyncTests
+public class ParallelExtensionsTests
 {
     [Fact]
     public async Task ParallelAsync_ProcessesAllItems_AndHonorsMaxParallel()
     {
-        var items = Enumerable.Range(1, 100).ToArray();
+        var items = System.Linq.Enumerable.Range(1, 100).ToArray();
         var current = 0;
         var maxObserved = 0;
         var processed = 0;
@@ -31,7 +31,7 @@ public class ParallelControlAsyncTests
     public async Task ParallelAsyncByKey_RespectsPerKeyLimit()
     {
         // Create 60 items across 3 keys (A,B,C)
-        var items = Enumerable.Range(0, 60).Select(i => (Key: (char)('A' + (i % 3)), Value: i)).ToArray();
+        var items = System.Linq.Enumerable.Range(0, 60).Select(i => (Key: (char)('A' + (i % 3)), Value: i)).ToArray();
 
         var perKeyCurrent = new ConcurrentDictionary<char, int>();
         var perKeyMax = new ConcurrentDictionary<char, int>();
@@ -68,7 +68,7 @@ public class ParallelControlAsyncTests
     [Fact]
     public async Task ParallelAsync_ReturnsResults()
     {
-        var items = Enumerable.Range(1, 20).ToList();
+        var items = System.Linq.Enumerable.Range(1, 20).ToList();
         var results = await items.ParallelAsync(async (x, ct) =>
         {
             await Task.Delay(5, ct);
@@ -85,7 +85,7 @@ public class ParallelControlAsyncTests
         var cts = new CancellationTokenSource();
         cts.CancelAfter(50);
 
-        var items = Enumerable.Range(0, 1000);
+        var items = System.Linq.Enumerable.Range(0, 1000);
         Func<Task> act = async () =>
         {
             await items.ParallelAsync(async (_, ct) =>
@@ -100,7 +100,7 @@ public class ParallelControlAsyncTests
     [Fact]
     public async Task ParallelAsync_AggregatesExceptions()
     {
-        var items = Enumerable.Range(1, 20);
+        var items = System.Linq.Enumerable.Range(1, 20);
         Func<Task> act = async () =>
         {
             await items.ParallelAsync(async (i, ct) =>
