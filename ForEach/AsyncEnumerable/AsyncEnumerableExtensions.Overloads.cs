@@ -11,16 +11,16 @@ public static partial class AsyncEnumerableExtensions
     /// <typeparam name="T">Item type.</typeparam>
     /// <param name="source">The items to process.</param>
     /// <param name="body">The async delegate to run per item.</param>
-    /// <param name="maxParallel">Maximum number of concurrent operations.</param>
+    /// <param name="maxConcurrency">Maximum number of concurrent operations.</param>
     /// <param name="ct">Cancellation token.</param>
     public static Task ForEachParallelAsync<T>(
         this IAsyncEnumerable<T> source,
         Func<T, ValueTask> body,
-        int maxParallel = 32,
+        int maxConcurrency = 32,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(body);
-        return source.ForEachParallelAsync((item, _) => body(item), maxParallel, ct);
+        return source.ForEachParallelAsync((item, _) => body(item), maxConcurrency, ct);
     }
 
     /// <summary>
@@ -31,16 +31,16 @@ public static partial class AsyncEnumerableExtensions
     /// <typeparam name="TResult">Result item type.</typeparam>
     /// <param name="source">Items to process.</param>
     /// <param name="selector">Async transform that produces a result per item.</param>
-    /// <param name="maxParallel">Maximum concurrency.</param>
+    /// <param name="maxConcurrency">Maximum concurrency.</param>
     /// <param name="ct">Cancellation token.</param>
     public static Task<List<TResult>> ForEachParallelAsync<T, TResult>(
         this IAsyncEnumerable<T> source,
         Func<T, ValueTask<TResult>> selector,
-        int maxParallel = 32,
+        int maxConcurrency = 32,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        return source.ForEachParallelAsync((item, _) => selector(item), maxParallel, ct);
+        return source.ForEachParallelAsync((item, _) => selector(item), maxConcurrency, ct);
     }
 
     /// <summary>
@@ -52,20 +52,20 @@ public static partial class AsyncEnumerableExtensions
     /// <param name="source">Items to process.</param>
     /// <param name="keySelector">Selects the throttling key for an item.</param>
     /// <param name="body">The async delegate to run per item.</param>
-    /// <param name="maxConcurrent">Maximum number of items being processed concurrently across all keys.</param>
-    /// <param name="maxPerKey">Maximum number of items being processed concurrently per key.</param>
+    /// <param name="maxConcurrency">Maximum number of items being processed concurrently across all keys.</param>
+    /// <param name="maxConcurrencyPerKey">Maximum number of items being processed concurrently per key.</param>
     /// <param name="ct">Cancellation token.</param>
     public static Task ForEachKeyParallelAsync<T, TKey>(
         this IAsyncEnumerable<T> source,
         Func<T, TKey> keySelector,
         Func<T, ValueTask> body,
-        int maxConcurrent = 32,
-        int maxPerKey = 4,
+        int maxConcurrency = 32,
+        int maxConcurrencyPerKey = 4,
         CancellationToken ct = default)
         where TKey : notnull
     {
         ArgumentNullException.ThrowIfNull(body);
-        return source.ForEachKeyParallelAsync(keySelector, (item, _) => body(item), maxConcurrent, maxPerKey, ct);
+        return source.ForEachKeyParallelAsync(keySelector, (item, _) => body(item), maxConcurrency, maxConcurrencyPerKey, ct);
     }
 
     /// <summary>
@@ -75,17 +75,17 @@ public static partial class AsyncEnumerableExtensions
     /// <typeparam name="T">Item type.</typeparam>
     /// <param name="source">Items to process.</param>
     /// <param name="body">The async delegate to run per batch. Receives a list of items in the batch.</param>
-    /// <param name="maxPerBatch">Maximum number of items per batch.</param>
-    /// <param name="maxConcurrent">Maximum number of batches being processed concurrently.</param>
+    /// <param name="maxConcurrencyPerBatch">Maximum number of items per batch.</param>
+    /// <param name="maxConcurrency">Maximum number of batches being processed concurrently.</param>
     /// <param name="ct">Cancellation token.</param>
     public static Task ForEachBatchParallelAsync<T>(
         this IAsyncEnumerable<T> source,
         Func<List<T>, ValueTask> body,
-        int maxPerBatch,
-        int maxConcurrent = 32,
+        int maxConcurrency = 32,
+        int maxConcurrencyPerBatch = 4,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(body);
-        return source.ForEachBatchParallelAsync((batch, _) => body(batch), maxPerBatch, maxConcurrent, ct);
+        return source.ForEachBatchParallelAsync((batch, _) => body(batch), maxConcurrency, maxConcurrencyPerBatch, ct);
     }
 }

@@ -12,11 +12,11 @@ public static partial class ChannelsExtensions
     /// </summary>
     public static Task ForEachAsync<T>(
         this Channel<T> channel,
-        Func<T, ValueTask> handler,
+        Func<T, ValueTask> @delegate,
         CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(handler);
-        return channel.ForEachAsync((item, _) => handler(item), ct);
+        ArgumentNullException.ThrowIfNull(@delegate);
+        return channel.ForEachAsync((item, _) => @delegate(item), ct);
     }
 
     /// <summary>
@@ -24,12 +24,12 @@ public static partial class ChannelsExtensions
     /// </summary>
     public static Task ForEachParallelAsync<T>(
         this Channel<T> channel,
-        Func<T, ValueTask> handler,
-        int maxParallel = 32,
+        Func<T, ValueTask> @delegate,
+        int maxConcurrency = 32,
         CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(handler);
-        return channel.ForEachParallelAsync((item, _) => handler(item), maxParallel, ct);
+        ArgumentNullException.ThrowIfNull(@delegate);
+        return channel.ForEachParallelAsync((item, _) => @delegate(item), maxConcurrency, ct);
     }
 
     /// <summary>
@@ -37,15 +37,15 @@ public static partial class ChannelsExtensions
     /// </summary>
     public static Task ForEachKeyParallelAsync<T, TKey>(
         this Channel<T> channel,
-        Func<T, TKey> keySelector,
-        Func<T, ValueTask> handler,
-        int maxConcurrent = 32,
-        int maxPerKey = 4,
+        Func<T, TKey> @keySelector,
+        Func<T, ValueTask> @delegate,
+        int maxConcurrency = 32,
+        int maxConcurrencyPerKey = 4,
         CancellationToken ct = default)
         where TKey : notnull
     {
-        ArgumentNullException.ThrowIfNull(handler);
-        return channel.ForEachKeyParallelAsync(keySelector, (item, _) => handler(item), maxConcurrent, maxPerKey, ct);
+        ArgumentNullException.ThrowIfNull(@delegate);
+        return channel.ForEachKeyParallelAsync(@keySelector, (item, _) => @delegate(item), maxConcurrency, maxConcurrencyPerKey, ct);
     }
 
     /// <summary>
@@ -54,12 +54,12 @@ public static partial class ChannelsExtensions
     /// </summary>
     public static Task ForEachBatchParallelAsync<T>(
         this Channel<T> channel,
-        Func<List<T>, ValueTask> handler,
-        int maxPerBatch,
-        int maxConcurrent = 32,
+        Func<List<T>, ValueTask> @delegate,
+        int maxConcurrency = 32,
+        int maxConcurrencyPerBatch = 4,
         CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(handler);
-        return channel.ForEachBatchParallelAsync((batch, _) => handler(batch), maxPerBatch, maxConcurrent, ct);
+        ArgumentNullException.ThrowIfNull(@delegate);
+        return channel.ForEachBatchParallelAsync((batch, _) => @delegate(batch), maxConcurrency, maxConcurrencyPerBatch, ct);
     }
 }

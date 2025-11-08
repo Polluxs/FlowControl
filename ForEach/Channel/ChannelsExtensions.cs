@@ -24,13 +24,13 @@ public static partial class ChannelsExtensions
     /// </summary>
     public static Task ForEachAsync<T>(
         this Channel<T> channel,
-        Func<T, CancellationToken, ValueTask> handler,
+        Func<T, CancellationToken, ValueTask> @delegate,
         CancellationToken ct = default)
     {
         return Task.Run(async () =>
         {
             await foreach (var item in channel.ReadAllAsync(ct).ConfigureAwait(false))
-                await handler(item, ct).ConfigureAwait(false);
+                await @delegate(item, ct).ConfigureAwait(false);
         }, ct);
     }
 
@@ -39,11 +39,11 @@ public static partial class ChannelsExtensions
     /// </summary>
     public static Task ForEachParallelAsync<T>(
         this Channel<T> channel,
-        Func<T, CancellationToken, ValueTask> handler,
-        int maxParallel = 32,
+        Func<T, CancellationToken, ValueTask> @delegate,
+        int maxConcurrency = 32,
         CancellationToken ct = default)
     {
-        return channel.ReadAllAsync(ct).ForEachParallelAsync(handler, maxParallel, ct);
+        return channel.ReadAllAsync(ct).ForEachParallelAsync(@delegate, maxConcurrency, ct);
     }
 
     /// <summary>
@@ -51,15 +51,15 @@ public static partial class ChannelsExtensions
     /// </summary>
     public static Task ForEachKeyParallelAsync<T, TKey>(
         this Channel<T> channel,
-        Func<T, TKey> keySelector,
-        Func<T, CancellationToken, ValueTask> handler,
-        int maxConcurrent = 32,
-        int maxPerKey = 4,
+        Func<T, TKey> @keySelector,
+        Func<T, CancellationToken, ValueTask> @delegate,
+        int maxConcurrency = 32,
+        int maxConcurrencyPerKey = 4,
         CancellationToken ct = default)
         where TKey : notnull
     {
         return channel.ReadAllAsync(ct)
-            .ForEachKeyParallelAsync(keySelector, handler, maxConcurrent, maxPerKey, ct);
+            .ForEachKeyParallelAsync(@keySelector, @delegate, maxConcurrency, maxConcurrencyPerKey, ct);
     }
 
     /// <summary>
@@ -68,13 +68,13 @@ public static partial class ChannelsExtensions
     /// </summary>
     public static Task ForEachBatchParallelAsync<T>(
         this Channel<T> channel,
-        Func<List<T>, CancellationToken, ValueTask> handler,
-        int maxPerBatch,
-        int maxConcurrent = 32,
+        Func<List<T>, CancellationToken, ValueTask> @delegate,
+        int maxConcurrency = 32,
+        int maxConcurrencyPerBatch = 4,
         CancellationToken ct = default)
     {
         return channel.ReadAllAsync(ct)
-            .ForEachBatchParallelAsync(handler, maxPerBatch, maxConcurrent, ct);
+            .ForEachBatchParallelAsync(@delegate, maxConcurrency, maxConcurrencyPerBatch, ct);
     }
 
     /// <summary>

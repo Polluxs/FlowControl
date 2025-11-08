@@ -12,20 +12,20 @@ public static partial class AsyncEnumerableExtensions
     /// </summary>
     /// <typeparam name="T">Item type.</typeparam>
     /// <param name="source">The items to process.</param>
-    /// <param name="body">The async delegate to run per item.</param>
-    /// <param name="maxParallel">Maximum number of concurrent operations.</param>
+    /// <param name="delegate">The async delegate to run per item.</param>
+    /// <param name="maxConcurrency">Maximum number of concurrent operations.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task ForEachParallelAsync<T>(
         this IAsyncEnumerable<T> source,
-        Func<T, CancellationToken, ValueTask> body,
-        int maxParallel = 32,
+        Func<T, CancellationToken, ValueTask> @delegate,
+        int maxConcurrency = 32,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(body);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxParallel, 0);
+        ArgumentNullException.ThrowIfNull(@delegate);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxConcurrency, 0);
 
-        var channel = System.Threading.Channels.Channel.CreateBounded<T>(maxParallel);
+        var channel = System.Threading.Channels.Channel.CreateBounded<T>(maxConcurrency);
 
         // Producer: feed items from async enumerable into channel
         var producer = Task.Run(async () =>
@@ -44,12 +44,12 @@ public static partial class AsyncEnumerableExtensions
         }, ct);
 
         // Consumers: process items from channel
-        var consumers = System.Linq.Enumerable.Range(0, maxParallel)
+        var consumers = System.Linq.Enumerable.Range(0, maxConcurrency)
             .Select(_ => Task.Run(async () =>
             {
                 await foreach (var item in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
                 {
-                    await body(item, ct).ConfigureAwait(false);
+                    await @delegate(item, ct).ConfigureAwait(false);
                 }
             }, ct))
             .ToArray();
@@ -64,28 +64,28 @@ public static partial class AsyncEnumerableExtensions
     /// <typeparam name="T">Input item type.</typeparam>
     /// <typeparam name="TResult">Result item type.</typeparam>
     /// <param name="source">Items to process.</param>
-    /// <param name="selector">Async transform that produces a result per item.</param>
-    /// <param name="maxParallel">Maximum concurrency.</param>
+    /// <param name="delegate">Async transform that produces a result per item.</param>
+    /// <param name="maxConcurrency">Maximum concurrency.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task<List<TResult>> ForEachParallelAsync<T, TResult>(
         this IAsyncEnumerable<T> source,
-        Func<T, CancellationToken, ValueTask<TResult>> selector,
-        int maxParallel = 32,
+        Func<T, CancellationToken, ValueTask<TResult>> @delegate,
+        int maxConcurrency = 32,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(selector);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxParallel, 0);
+        ArgumentNullException.ThrowIfNull(@delegate);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxConcurrency, 0);
 
         var bag = new ConcurrentBag<TResult>();
 
         await source.ForEachParallelAsync(
             async (item, token) =>
             {
-                var r = await selector(item, token);
+                var r = await @delegate(item, token);
                 bag.Add(r);
             },
-            maxParallel,
+            maxConcurrency,
             ct);
 
         return bag.ToList();
@@ -99,26 +99,26 @@ public static partial class AsyncEnumerableExtensions
     /// <typeparam name="TKey">Key type for per-key throttling.</typeparam>
     /// <param name="source">Items to process.</param>
     /// <param name="keySelector">Selects the throttling key for an item.</param>
-    /// <param name="body">The async delegate to run per item.</param>
-    /// <param name="maxConcurrent">Maximum number of items being processed concurrently across all keys.</param>
-    /// <param name="maxPerKey">Maximum number of items being processed concurrently per key.</param>
+    /// <param name="delegate">The async delegate to run per item.</param>
+    /// <param name="maxConcurrency">Maximum number of items being processed concurrently across all keys.</param>
+    /// <param name="maxConcurrencyPerKey">Maximum number of items being processed concurrently per key.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task ForEachKeyParallelAsync<T, TKey>(
         this IAsyncEnumerable<T> source,
         Func<T, TKey> keySelector,
-        Func<T, CancellationToken, ValueTask> body,
-        int maxConcurrent = 32,
-        int maxPerKey = 4,
+        Func<T, CancellationToken, ValueTask> @delegate,
+        int maxConcurrency = 32,
+        int maxConcurrencyPerKey = 4,
         CancellationToken ct = default)
         where TKey : notnull
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(keySelector);
-        ArgumentNullException.ThrowIfNull(body);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxConcurrent, 0);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxPerKey, 0);
+        ArgumentNullException.ThrowIfNull(@delegate);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxConcurrency, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxConcurrencyPerKey, 0);
 
-        var channel = System.Threading.Channels.Channel.CreateBounded<(T Item, TKey Key)>(maxConcurrent);
+        var channel = System.Threading.Channels.Channel.CreateBounded<(T Item, TKey Key)>(maxConcurrency);
         var perKeyGates = new ConcurrentDictionary<TKey, SemaphoreSlim>();
 
         // Producer: feed items into channel with per-key guard
@@ -132,7 +132,7 @@ public static partial class AsyncEnumerableExtensions
                     var key = keySelector(item);
 
                     // Wait for available slot for this key
-                    var gate = perKeyGates.GetOrAdd(key, _ => new SemaphoreSlim(maxPerKey, maxPerKey));
+                    var gate = perKeyGates.GetOrAdd(key, _ => new SemaphoreSlim(maxConcurrencyPerKey, maxConcurrencyPerKey));
                     await gate.WaitAsync(ct);
 
                     // Push to channel (blocks if channel full = natural backpressure)
@@ -146,14 +146,14 @@ public static partial class AsyncEnumerableExtensions
         }, ct);
 
         // Consumers: pull from channel, process, release key slot
-        var consumers = System.Linq.Enumerable.Range(0, maxConcurrent)
+        var consumers = System.Linq.Enumerable.Range(0, maxConcurrency)
             .Select(_ => Task.Run(async () =>
             {
                 await foreach (var (item, key) in channel.Reader.ReadAllAsync(ct))
                 {
                     try
                     {
-                        await body(item, ct);
+                        await @delegate(item, ct);
                     }
                     finally
                     {
@@ -186,39 +186,39 @@ public static partial class AsyncEnumerableExtensions
     /// </summary>
     /// <typeparam name="T">Item type.</typeparam>
     /// <param name="source">Items to process.</param>
-    /// <param name="body">The async delegate to run per batch. Receives a list of items in the batch.</param>
-    /// <param name="maxPerBatch">Maximum number of items per batch.</param>
-    /// <param name="maxConcurrent">Maximum number of batches being processed concurrently.</param>
+    /// <param name="delegate">The async delegate to run per batch. Receives a list of items in the batch.</param>
+    /// <param name="maxConcurrencyPerBatch">Maximum number of items per batch.</param>
+    /// <param name="maxConcurrency">Maximum number of batches being processed concurrently.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task ForEachBatchParallelAsync<T>(
         this IAsyncEnumerable<T> source,
-        Func<List<T>, CancellationToken, ValueTask> body,
-        int maxPerBatch,
-        int maxConcurrent = 32,
+        Func<List<T>, CancellationToken, ValueTask> @delegate,
+        int maxConcurrency = 32,
+        int maxConcurrencyPerBatch = 4,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(body);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxPerBatch, 0);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxConcurrent, 0);
+        ArgumentNullException.ThrowIfNull(@delegate);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxConcurrencyPerBatch, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxConcurrency, 0);
 
-        var batchChannel = System.Threading.Channels.Channel.CreateBounded<List<T>>(maxConcurrent);
+        var batchChannel = System.Threading.Channels.Channel.CreateBounded<List<T>>(maxConcurrency);
 
         // Producer: read items and create batches
         var producer = Task.Run(async () =>
         {
             try
             {
-                var currentBatch = new List<T>(maxPerBatch);
+                var currentBatch = new List<T>(maxConcurrencyPerBatch);
 
                 await foreach (var item in source.WithCancellation(ct).ConfigureAwait(false))
                 {
                     currentBatch.Add(item);
 
-                    if (currentBatch.Count >= maxPerBatch)
+                    if (currentBatch.Count >= maxConcurrencyPerBatch)
                     {
                         await batchChannel.Writer.WriteAsync(currentBatch, ct).ConfigureAwait(false);
-                        currentBatch = new List<T>(maxPerBatch);
+                        currentBatch = new List<T>(maxConcurrencyPerBatch);
                     }
                 }
 
@@ -235,12 +235,12 @@ public static partial class AsyncEnumerableExtensions
         }, ct);
 
         // Consumers: process batches in parallel
-        var consumers = System.Linq.Enumerable.Range(0, maxConcurrent)
+        var consumers = System.Linq.Enumerable.Range(0, maxConcurrency)
             .Select(_ => Task.Run(async () =>
             {
                 await foreach (var batch in batchChannel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
                 {
-                    await body(batch, ct).ConfigureAwait(false);
+                    await @delegate(batch, ct).ConfigureAwait(false);
                 }
             }, ct))
             .ToArray();

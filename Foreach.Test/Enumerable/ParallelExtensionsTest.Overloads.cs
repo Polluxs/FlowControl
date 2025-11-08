@@ -25,7 +25,7 @@ public partial class AsyncEnumerableExtensionsTests
         {
             await Task.Delay(5);
             processed.Add(item);
-        }, maxParallel: 4);
+        }, maxConcurrency: 4);
 
         processed.Should().HaveCount(10);
         processed.Should().BeEquivalentTo(items);
@@ -45,7 +45,7 @@ public partial class AsyncEnumerableExtensionsTests
         {
             await Task.Delay(5);
             return x * 2;
-        }, maxParallel: 4);
+        }, maxConcurrency: 4);
 
         results.Should().HaveCount(10);
         results.Should().BeEquivalentTo(items.Select(i => i * 2));
@@ -71,8 +71,8 @@ public partial class AsyncEnumerableExtensionsTests
                 await Task.Delay(5);
                 processed.Add(it.Value);
             },
-            maxConcurrent: 10,
-            maxPerKey: 2);
+            maxConcurrency: 10,
+            maxConcurrencyPerKey: 2);
 
         processed.Should().HaveCount(20);
         processed.Should().BeEquivalentTo(items.Select(i => i.Value));
@@ -93,7 +93,7 @@ public partial class AsyncEnumerableExtensionsTests
         {
             processedBatches.Add(batch);
             await Task.Delay(1);
-        }, maxPerBatch: 10);
+        }, maxConcurrencyPerBatch: 10);
 
         var allProcessedItems = processedBatches.SelectMany(b => b).OrderBy(x => x).ToList();
         allProcessedItems.Should().BeEquivalentTo(items);

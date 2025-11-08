@@ -78,7 +78,7 @@ public partial class ChannelsExtensionsTest
             await Task.Delay(20, ct);
             Interlocked.Decrement(ref current);
             Interlocked.Increment(ref processed);
-        }, maxParallel: 8);
+        }, maxConcurrency: 8);
 
         processed.Should().Be(50);
         maxObserved.Should().BeLessThanOrEqualTo(8);
@@ -103,7 +103,7 @@ public partial class ChannelsExtensionsTest
 
         await channel.ForEachKeyParallelAsync(
             keySelector: it => it.Key,
-            handler: async (it, ct) =>
+            @delegate: async (it, ct) =>
             {
                 // Track per-key concurrency
                 var cur = perKeyCurrent.AddOrUpdate(it.Key, 1, (_, v) => v + 1);
@@ -118,8 +118,8 @@ public partial class ChannelsExtensionsTest
                 perKeyCurrent.AddOrUpdate(it.Key, 0, (_, v) => v - 1);
                 Interlocked.Decrement(ref totalCurrent);
             },
-            maxConcurrent: 12,
-            maxPerKey: 3);
+            maxConcurrency: 12,
+            maxConcurrencyPerKey: 3);
 
         // Verify per-key limit
         perKeyMax.Values.Should().OnlyContain(v => v <= 3);
@@ -223,7 +223,7 @@ public partial class ChannelsExtensionsTest
             await Task.Delay(10, ct);
 
             Interlocked.Decrement(ref currentConcurrentBatches);
-        }, maxPerBatch: 10, maxConcurrent: 4);
+        }, maxConcurrencyPerBatch: 10, maxConcurrency: 4);
 
         // Verify all items were processed
         var allProcessedItems = processedBatches.SelectMany(b => b).OrderBy(x => x).ToList();
@@ -255,7 +255,7 @@ public partial class ChannelsExtensionsTest
         {
             processedBatches.Add(batch);
             await Task.Delay(1, ct);
-        }, maxPerBatch: 10);
+        }, maxConcurrencyPerBatch: 10);
 
         // Should have 3 batches: 10, 10, 5
         processedBatches.Should().HaveCount(3);

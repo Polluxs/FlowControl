@@ -21,7 +21,7 @@ public partial class AsyncEnumerableExtensionsTests
             await Task.Delay(20, ct);
             Interlocked.Decrement(ref current);
             Interlocked.Increment(ref processed);
-        }, maxParallel: 8);
+        }, maxConcurrency: 8);
 
         processed.Should().Be(items.Length);
         maxObserved.Should().BeLessThanOrEqualTo(8);
@@ -40,7 +40,7 @@ public partial class AsyncEnumerableExtensionsTests
 
         await items.ForEachKeyParallelAsync(
             keySelector: it => it.Key,
-            body: async (it, ct) =>
+            @delegate: async (it, ct) =>
             {
                 // Track per-key concurrency
                 var cur = perKeyCurrent.AddOrUpdate(it.Key, 1, (_, v) => v + 1);
@@ -55,8 +55,8 @@ public partial class AsyncEnumerableExtensionsTests
                 perKeyCurrent.AddOrUpdate(it.Key, 0, (_, v) => v - 1);
                 Interlocked.Decrement(ref totalCurrent);
             },
-            maxConcurrent: 12,
-            maxPerKey: 3);
+            maxConcurrency: 12,
+            maxConcurrencyPerKey: 3);
 
         // Verify per-key limit
         perKeyMax.Values.Should().OnlyContain(v => v <= 3);
@@ -73,7 +73,7 @@ public partial class AsyncEnumerableExtensionsTests
         {
             await Task.Delay(5, ct);
             return x * x;
-        }, maxParallel: 4);
+        }, maxConcurrency: 4);
 
         results.Should().HaveCount(20);
         results.Should().BeEquivalentTo(items.Select(i => i * i));
@@ -91,7 +91,7 @@ public partial class AsyncEnumerableExtensionsTests
             await items.ForEachParallelAsync(async (_, ct) =>
             {
                 await Task.Delay(10, ct);
-            }, maxParallel: 32, ct: cts.Token);
+            }, maxConcurrency: 32, ct: cts.Token);
         };
 
         await act.Should().ThrowAsync<OperationCanceledException>();
@@ -107,7 +107,7 @@ public partial class AsyncEnumerableExtensionsTests
             {
                 await Task.Delay(1, ct);
                 if (i % 5 == 0) throw new InvalidOperationException("boom");
-            }, maxParallel: 8);
+            }, maxConcurrency: 8);
         };
 
         var ex = await act.Should().ThrowAsync<Exception>();
@@ -131,7 +131,7 @@ public partial class AsyncEnumerableExtensionsTests
             await Task.Delay(10, ct);
 
             Interlocked.Decrement(ref currentConcurrentBatches);
-        }, maxPerBatch: 10, maxConcurrent: 4);
+        }, maxConcurrencyPerBatch: 10, maxConcurrency: 4);
 
         // Verify all items were processed
         var allProcessedItems = processedBatches.SelectMany(b => b).OrderBy(x => x).ToList();
@@ -156,7 +156,7 @@ public partial class AsyncEnumerableExtensionsTests
         {
             processedBatches.Add(batch);
             await Task.Delay(1, ct);
-        }, maxPerBatch: 10);
+        }, maxConcurrencyPerBatch: 10);
 
         // Should have 3 batches: 10, 10, 5
         processedBatches.Should().HaveCount(3);
@@ -177,7 +177,7 @@ public partial class AsyncEnumerableExtensionsTests
             await items.ForEachBatchParallelAsync(async (batch, ct) =>
             {
                 await Task.Delay(10, ct);
-            }, maxPerBatch: 10, maxConcurrent: 4, ct: cts.Token);
+            }, maxConcurrencyPerBatch: 10, maxConcurrency: 4, ct: cts.Token);
         };
 
         await act.Should().ThrowAsync<OperationCanceledException>();

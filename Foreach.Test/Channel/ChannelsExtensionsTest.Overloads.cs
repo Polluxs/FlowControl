@@ -52,7 +52,7 @@ public partial class ChannelsExtensionsTest
         {
             await Task.Delay(5);
             processed.Add(item);
-        }, maxParallel: 4);
+        }, maxConcurrency: 4);
 
         processed.Should().HaveCount(20);
     }
@@ -74,13 +74,13 @@ public partial class ChannelsExtensionsTest
         // Cleaner syntax when CT isn't needed in the processing logic
         await channel.ForEachKeyParallelAsync(
             keySelector: it => it.Key,
-            handler: async it =>
+            @delegate: async it =>
             {
                 await Task.Delay(5);
                 processed.Add(it.Value);
             },
-            maxConcurrent: 10,
-            maxPerKey: 2);
+            maxConcurrency: 10,
+            maxConcurrencyPerKey: 2);
 
         processed.Should().HaveCount(20);
     }
@@ -104,7 +104,7 @@ public partial class ChannelsExtensionsTest
         {
             processedBatches.Add(batch);
             await Task.Delay(1);
-        }, maxPerBatch: 10);
+        }, maxConcurrencyPerBatch: 10);
 
         var allProcessedItems = processedBatches.SelectMany(b => b).OrderBy(x => x).ToList();
         allProcessedItems.Should().BeEquivalentTo(System.Linq.Enumerable.Range(1, 30));
