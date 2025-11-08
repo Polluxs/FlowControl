@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
-using ForEach.FeEnumerable;
+using ForEach.Enumerable;
 
 namespace Foreach.Test.Enumerable;
 
@@ -55,7 +55,7 @@ public partial class AsyncEnumerableExtensionsTests
                 perKeyCurrent.AddOrUpdate(it.Key, 0, (_, v) => v - 1);
                 Interlocked.Decrement(ref totalCurrent);
             },
-            maxTotalParallel: 12,
+            maxConcurrent: 12,
             maxPerKey: 3);
 
         // Verify per-key limit

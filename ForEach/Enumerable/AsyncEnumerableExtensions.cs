@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using TChannel = System.Threading.Channels.Channel;
 
-namespace ForEach.FeEnumerable;
+namespace ForEach.Enumerable;
 
 /// <summary>
 /// Parallel helpers for running asynchronous work over <see cref="IEnumerable{T}"/>.
@@ -75,14 +75,14 @@ public static partial class AsyncEnumerableExtensions
     /// <param name="source">Items to process.</param>
     /// <param name="keySelector">Selects the throttling key for an item.</param>
     /// <param name="body">The async delegate to run per item.</param>
-    /// <param name="maxTotalParallel">Maximum number of items being processed concurrently across all keys.</param>
+    /// <param name="maxConcurrent">Maximum number of items being processed concurrently across all keys.</param>
     /// <param name="maxPerKey">Maximum number of items being processed concurrently per key.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task ForEachParallelByKeyAsync<T, TKey>(
         this IEnumerable<T> source,
         Func<T, TKey> keySelector,
         Func<T, CancellationToken, ValueTask> body,
-        int maxTotalParallel = 32,
+        int maxConcurrent = 32,
         int maxPerKey = 4,
         CancellationToken ct = default)
         where TKey : notnull
@@ -90,10 +90,10 @@ public static partial class AsyncEnumerableExtensions
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(keySelector);
         ArgumentNullException.ThrowIfNull(body);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxTotalParallel, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxConcurrent, 0);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxPerKey, 0);
 
-        var channel = TChannel.CreateBounded<(T Item, TKey Key)>(maxTotalParallel);
+        var channel = TChannel.CreateBounded<(T Item, TKey Key)>(maxConcurrent);
         var perKeyGates = new ConcurrentDictionary<TKey, SemaphoreSlim>();
 
         // Producer: feed items into channel with per-key guard
@@ -121,7 +121,7 @@ public static partial class AsyncEnumerableExtensions
         }, ct);
 
         // Consumers: pull from channel, process, release key slot
-        var consumers = System.Linq.Enumerable.Range(0, maxTotalParallel)
+        var consumers = System.Linq.Enumerable.Range(0, maxConcurrent)
             .Select(_ => Task.Run(async () =>
             {
                 await foreach (var (item, key) in channel.Reader.ReadAllAsync(ct))

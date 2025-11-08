@@ -39,12 +39,12 @@ public static partial class ChannelsExtensions
         this Channel<T> channel,
         Func<T, TKey> keySelector,
         Func<T, ValueTask> handler,
-        int maxParallel = 32,
+        int maxConcurrent = 32,
         int maxPerKey = 4,
         CancellationToken ct = default)
         where TKey : notnull
     {
         ArgumentNullException.ThrowIfNull(handler);
-        return channel.ForEachParallelByKeyAsync(keySelector, (item, _) => handler(item), maxParallel, maxPerKey, ct);
+        return channel.ForEachParallelByKeyAsync(keySelector, (item, _) => handler(item), maxConcurrent, maxPerKey, ct);
     }
 }

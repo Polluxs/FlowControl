@@ -66,7 +66,7 @@ public partial class AsyncEnumerableExtensionsTest
                 perKeyCurrent.AddOrUpdate(it.Key, 0, (_, v) => v - 1);
                 Interlocked.Decrement(ref totalCurrent);
             },
-            maxTotalParallel: 12,
+            maxConcurrent: 12,
             maxPerKey: 3);
 
         // Verify per-key limit

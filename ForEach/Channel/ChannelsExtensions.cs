@@ -53,13 +53,13 @@ public static partial class ChannelsExtensions
         this Channel<T> channel,
         Func<T, TKey> keySelector,
         Func<T, CancellationToken, ValueTask> handler,
-        int maxParallel = 32,
+        int maxConcurrent = 32,
         int maxPerKey = 4,
         CancellationToken ct = default)
         where TKey : notnull
     {
         return channel.ReadAllAsync(ct)
-            .ForEachParallelByKeyAsync(keySelector, handler, maxParallel, maxPerKey, ct);
+            .ForEachParallelByKeyAsync(keySelector, handler, maxConcurrent, maxPerKey, ct);
     }
 
     /// <summary>

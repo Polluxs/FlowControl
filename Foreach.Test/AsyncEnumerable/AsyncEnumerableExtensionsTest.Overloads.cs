@@ -74,7 +74,7 @@ public partial class AsyncEnumerableExtensionsTest
                 await Task.Delay(5);
                 processed.Add(it.Value);
             },
-            maxTotalParallel: 10,
+            maxConcurrent: 10,
             maxPerKey: 2);
 
         processed.Should().HaveCount(20);

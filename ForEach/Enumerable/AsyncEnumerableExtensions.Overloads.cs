@@ -1,7 +1,7 @@
-namespace ForEach.FeEnumerable;
+namespace ForEach.Enumerable;
 
 /// <summary>
-/// Convenience overloads for <see cref="AsyncEnumerableExtensions"/> that don't require CancellationToken in the body.
+/// Convenience overloads for <see cref="ForEach.Enumerable.AsyncEnumerableExtensions"/> that don't require CancellationToken in the body.
 /// </summary>
 public static partial class AsyncEnumerableExtensions
 {
@@ -52,19 +52,19 @@ public static partial class AsyncEnumerableExtensions
     /// <param name="source">Items to process.</param>
     /// <param name="keySelector">Selects the throttling key for an item.</param>
     /// <param name="body">The async delegate to run per item.</param>
-    /// <param name="maxTotalParallel">Maximum number of items being processed concurrently across all keys.</param>
+    /// <param name="maxConcurrent">Maximum number of items being processed concurrently across all keys.</param>
     /// <param name="maxPerKey">Maximum number of items being processed concurrently per key.</param>
     /// <param name="ct">Cancellation token.</param>
     public static Task ForEachParallelByKeyAsync<T, TKey>(
         this IEnumerable<T> source,
         Func<T, TKey> keySelector,
         Func<T, ValueTask> body,
-        int maxTotalParallel = 32,
+        int maxConcurrent = 32,
         int maxPerKey = 4,
         CancellationToken ct = default)
         where TKey : notnull
     {
         ArgumentNullException.ThrowIfNull(body);
-        return source.ForEachParallelByKeyAsync(keySelector, (item, _) => body(item), maxTotalParallel, maxPerKey, ct);
+        return source.ForEachParallelByKeyAsync(keySelector, (item, _) => body(item), maxConcurrent, maxPerKey, ct);
     }
 }

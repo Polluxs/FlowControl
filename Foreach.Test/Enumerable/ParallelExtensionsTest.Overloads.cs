@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
-using ForEach.FeEnumerable;
+using ForEach.Enumerable;
 
 namespace Foreach.Test.Enumerable;
 
@@ -71,7 +71,7 @@ public partial class AsyncEnumerableExtensionsTests
                 await Task.Delay(5);
                 processed.Add(it.Value);
             },
-            maxTotalParallel: 10,
+            maxConcurrent: 10,
             maxPerKey: 2);
 
         processed.Should().HaveCount(20);
