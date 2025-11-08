@@ -101,7 +101,7 @@ public partial class ChannelsExtensionsTest
         var totalCurrent = 0;
         var totalMax = 0;
 
-        await channel.ForEachParallelByKeyAsync(
+        await channel.ForEachKeyParallelAsync(
             keySelector: it => it.Key,
             handler: async (it, ct) =>
             {

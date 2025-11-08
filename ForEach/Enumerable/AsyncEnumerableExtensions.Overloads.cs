@@ -55,7 +55,7 @@ public static partial class AsyncEnumerableExtensions
     /// <param name="maxConcurrent">Maximum number of items being processed concurrently across all keys.</param>
     /// <param name="maxPerKey">Maximum number of items being processed concurrently per key.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static Task ForEachParallelByKeyAsync<T, TKey>(
+    public static Task ForEachKeyParallelAsync<T, TKey>(
         this IEnumerable<T> source,
         Func<T, TKey> keySelector,
         Func<T, ValueTask> body,
@@ -65,6 +65,6 @@ public static partial class AsyncEnumerableExtensions
         where TKey : notnull
     {
         ArgumentNullException.ThrowIfNull(body);
-        return source.ForEachParallelByKeyAsync(keySelector, (item, _) => body(item), maxConcurrent, maxPerKey, ct);
+        return source.ForEachKeyParallelAsync(keySelector, (item, _) => body(item), maxConcurrent, maxPerKey, ct);
     }
 }

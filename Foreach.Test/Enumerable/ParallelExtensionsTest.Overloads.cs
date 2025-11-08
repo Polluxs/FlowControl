@@ -64,7 +64,7 @@ public partial class AsyncEnumerableExtensionsTests
         var processed = new ConcurrentBag<int>();
 
         // Cleaner syntax - CT not needed in the body for simple processing
-        await items.ForEachParallelByKeyAsync(
+        await items.ForEachKeyParallelAsync(
             keySelector: it => it.Key,
             body: async it =>
             {

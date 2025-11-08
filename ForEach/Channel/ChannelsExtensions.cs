@@ -49,7 +49,7 @@ public static partial class ChannelsExtensions
     /// <summary>
     /// Process items from the channel in parallel with both global and per-key concurrency limits.
     /// </summary>
-    public static Task ForEachParallelByKeyAsync<T, TKey>(
+    public static Task ForEachKeyParallelAsync<T, TKey>(
         this Channel<T> channel,
         Func<T, TKey> keySelector,
         Func<T, CancellationToken, ValueTask> handler,
@@ -59,7 +59,7 @@ public static partial class ChannelsExtensions
         where TKey : notnull
     {
         return channel.ReadAllAsync(ct)
-            .ForEachParallelByKeyAsync(keySelector, handler, maxConcurrent, maxPerKey, ct);
+            .ForEachKeyParallelAsync(keySelector, handler, maxConcurrent, maxPerKey, ct);
     }
 
     /// <summary>

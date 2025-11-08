@@ -72,7 +72,7 @@ public partial class ChannelsExtensionsTest
         channel.Writer.Complete();
 
         // Cleaner syntax when CT isn't needed in the processing logic
-        await channel.ForEachParallelByKeyAsync(
+        await channel.ForEachKeyParallelAsync(
             keySelector: it => it.Key,
             handler: async it =>
             {

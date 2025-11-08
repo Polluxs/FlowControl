@@ -38,7 +38,7 @@ public partial class AsyncEnumerableExtensionsTests
         var totalCurrent = 0;
         var totalMax = 0;
 
-        await items.ForEachParallelByKeyAsync(
+        await items.ForEachKeyParallelAsync(
             keySelector: it => it.Key,
             body: async (it, ct) =>
             {
