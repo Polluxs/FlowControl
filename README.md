@@ -41,7 +41,7 @@ foreach (var (url, size) in results)
 
 ```csharp
 // Max 50 total, but only 2 per customer
-await orders.ForEachParallelByKeyAsync(
+await orders.ForEachKeyParallelAsync(
     keySelector: order => order.CustomerId,
     body: async (order, ct) => await ProcessOrderAsync(order, ct),
     maxTotalParallel: 50,
@@ -58,7 +58,7 @@ await orders.ForEachParallelByKeyAsync(
 |:--|:--|
 | [`ForEachParallelAsync`](#foreachparallelasync) | Process items concurrently with a global limit |
 | [`ForEachParallelAsync<T,TResult>`](#foreachparallelasync-with-results) | Process items concurrently and collect results |
-| [`ForEachParallelByKeyAsync`](#foreachparallelbykeyasync) | Process items with both global and per-key concurrency limits |
+| [`ForEachKeyParallelAsync`](#foreachkeyparallelasync) | Process items with both global and per-key concurrency limits |
 
 **For `Channel<T>` only:**
 
@@ -146,12 +146,12 @@ foreach (var (url, code) in results)
 - Exception aggregation same as `ForEachParallelAsync` (inherits from `Parallel.ForEachAsync`)
 
 
-### ForEachParallelByKeyAsync
+### ForEachKeyParallelAsync
 
 Limit concurrency globally AND per key.
 
 ```csharp
-await jobs.ForEachParallelByKeyAsync(
+await jobs.ForEachKeyParallelAsync(
     keySelector: j => j.AccountId,
     body: async (job, ct) =>
     {

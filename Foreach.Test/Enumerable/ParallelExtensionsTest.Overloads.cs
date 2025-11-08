@@ -52,11 +52,11 @@ public partial class AsyncEnumerableExtensionsTests
     }
 
     /// <summary>
-    /// Test that ForEachParallelByKeyAsync overload without CT exists and works.
+    /// Test that ForEachKeyParallelAsync overload without CT exists and works.
     /// Why: Per-key throttling logic often doesn't need CT in the body - cleaner code.
     /// </summary>
     [Fact]
-    public async Task ForEachParallelByKeyAsync_WorksWithoutCancellationTokenInBody()
+    public async Task ForEachKeyParallelAsync_WorksWithoutCancellationTokenInBody()
     {
         var items = System.Linq.Enumerable.Range(0, 20)
             .Select(i => (Key: i % 3, Value: i))

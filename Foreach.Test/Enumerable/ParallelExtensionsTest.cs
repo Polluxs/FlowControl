@@ -28,7 +28,7 @@ public partial class AsyncEnumerableExtensionsTests
     }
 
     [Fact]
-    public async Task ForEachParallelByKeyAsync_RespectsPerKeyLimit()
+    public async Task ForEachKeyParallelAsync_RespectsPerKeyLimit()
     {
         // Create 60 items across 3 keys (A,B,C)
         var items = System.Linq.Enumerable.Range(0, 60).Select(i => (Key: (char)('A' + (i % 3)), Value: i)).ToArray();

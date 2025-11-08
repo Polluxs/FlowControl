@@ -58,11 +58,11 @@ public partial class ChannelsExtensionsTest
     }
 
     /// <summary>
-    /// Test that ForEachParallelByKeyAsync overload without CT exists and works.
+    /// Test that ForEachKeyParallelAsync overload without CT exists and works.
     /// Why: Per-key throttling logic often doesn't need CT in the body - simpler code.
     /// </summary>
     [Fact]
-    public async Task ForEachParallelByKeyAsync_WorksWithoutCancellationTokenInBody()
+    public async Task ForEachKeyParallelAsync_WorksWithoutCancellationTokenInBody()
     {
         var channel = System.Threading.Channels.Channel.CreateUnbounded<(char Key, int Value)>();
         var processed = new ConcurrentBag<int>();

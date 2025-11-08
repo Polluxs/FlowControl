@@ -85,7 +85,7 @@ public partial class ChannelsExtensionsTest
     }
 
     [Fact]
-    public async Task ForEachParallelByKeyAsync_RespectsPerKeyLimit()
+    public async Task ForEachKeyParallelAsync_RespectsPerKeyLimit()
     {
         var channel = System.Threading.Channels.Channel.CreateUnbounded<(char Key, int Value)>();
 
