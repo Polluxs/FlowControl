@@ -70,6 +70,37 @@ await orders.ForEachParallelByKeyAsync(
 
 
 ---
+
+## Cancellation Support
+
+All methods support cancellation tokens at two levels:
+
+**1. Method-level cancellation** (always available):
+```csharp
+var cts = new CancellationTokenSource();
+await items.ForEachParallelAsync(async item =>
+{
+    await ProcessAsync(item);
+}, maxParallel: 10, ct: cts.Token);  // ← Pass CT here
+```
+
+**2. Body-level cancellation** (optional - use when your work needs it):
+```csharp
+await items.ForEachParallelAsync(async (item, ct) =>  // ← CT parameter
+{
+    await ProcessAsync(item, ct);  // ← Pass to operations
+}, maxParallel: 10);
+```
+
+**Don't need cancellation?** Just omit it:
+```csharp
+// Simplest form - no cancellation token needed
+await items.ForEachParallelAsync(async item =>
+{
+    await ProcessAsync(item);
+}, maxParallel: 10);
+```
+
 ## Code examples for every method
 
 ### ForEachParallelAsync
