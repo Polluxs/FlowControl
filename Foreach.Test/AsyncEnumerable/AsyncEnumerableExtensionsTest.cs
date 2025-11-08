@@ -149,7 +149,7 @@ public partial class AsyncEnumerableExtensionsTest
             await Task.Delay(10, ct);
 
             Interlocked.Decrement(ref currentConcurrentBatches);
-        }, batchSize: 10, maxConcurrency: 4);
+        }, batchSize: 10, maxBatchesConcurrent: 4);
 
         // Verify all items were processed
         var allProcessedItems = processedBatches.SelectMany(b => b).OrderBy(x => x).ToList();
@@ -197,7 +197,7 @@ public partial class AsyncEnumerableExtensionsTest
             await asyncItems.ForEachBatchParallelAsync(async (batch, ct) =>
             {
                 await Task.Delay(10, ct);
-            }, batchSize: 10, maxConcurrency: 4, ct: cts.Token);
+            }, batchSize: 10, maxBatchesConcurrent: 4, ct: cts.Token);
         };
 
         await act.Should().ThrowAsync<OperationCanceledException>();

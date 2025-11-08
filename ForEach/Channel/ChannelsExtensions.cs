@@ -70,11 +70,11 @@ public static partial class ChannelsExtensions
         this Channel<T> channel,
         Func<List<T>, CancellationToken, ValueTask> @delegate,
         int batchSize,
-        int maxConcurrency = 32,
+        int maxBatchesConcurrent = 32,
         CancellationToken ct = default)
     {
         return channel.ReadAllAsync(ct)
-            .ForEachBatchParallelAsync(@delegate, batchSize, maxConcurrency, ct);
+            .ForEachBatchParallelAsync(@delegate, batchSize, maxBatchesConcurrent, ct);
     }
 
     /// <summary>

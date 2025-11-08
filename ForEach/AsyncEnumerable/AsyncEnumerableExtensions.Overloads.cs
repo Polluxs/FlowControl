@@ -76,16 +76,16 @@ public static partial class AsyncEnumerableExtensions
     /// <param name="source">Items to process.</param>
     /// <param name="body">The async delegate to run per batch. Receives a list of items in the batch.</param>
     /// <param name="batchSize">Maximum number of items per batch.</param>
-    /// <param name="maxConcurrency">Maximum number of batches being processed concurrently.</param>
+    /// <param name="maxBatchesConcurrent">Maximum number of batches being processed concurrently.</param>
     /// <param name="ct">Cancellation token.</param>
     public static Task ForEachBatchParallelAsync<T>(
         this IAsyncEnumerable<T> source,
         Func<List<T>, ValueTask> body,
         int batchSize,
-        int maxConcurrency = 32,
+        int maxBatchesConcurrent = 32,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(body);
-        return source.ForEachBatchParallelAsync((batch, _) => body(batch), batchSize, maxConcurrency, ct);
+        return source.ForEachBatchParallelAsync((batch, _) => body(batch), batchSize, maxBatchesConcurrent, ct);
     }
 }

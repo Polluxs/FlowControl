@@ -56,10 +56,10 @@ public static partial class ChannelsExtensions
         this Channel<T> channel,
         Func<List<T>, ValueTask> @delegate,
         int batchSize,
-        int maxConcurrency = 32,
+        int maxBatchesConcurrent = 32,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(@delegate);
-        return channel.ForEachBatchParallelAsync((batch, _) => @delegate(batch), batchSize, maxConcurrency, ct);
+        return channel.ForEachBatchParallelAsync((batch, _) => @delegate(batch), batchSize, maxBatchesConcurrent, ct);
     }
 }

@@ -163,21 +163,21 @@ public static partial class AsyncEnumerableExtensions
     /// <param name="source">Items to process.</param>
     /// <param name="delegate">The async delegate to run per batch. Receives a list of items in the batch.</param>
     /// <param name="batchSize">Maximum number of items per batch.</param>
-    /// <param name="maxConcurrency">Maximum number of batches being processed concurrently.</param>
+    /// <param name="maxBatchesConcurrent">Maximum number of batches being processed concurrently.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task ForEachBatchParallelAsync<T>(
         this IEnumerable<T> source,
         Func<List<T>, CancellationToken, ValueTask> @delegate,
         int batchSize,
-        int maxConcurrency = 32,
+        int maxBatchesConcurrent = 32,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(@delegate);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(batchSize, 0);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxConcurrency, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxBatchesConcurrent, 0);
 
-        var batchChannel = TChannel.CreateBounded<List<T>>(maxConcurrency);
+        var batchChannel = TChannel.CreateBounded<List<T>>(maxBatchesConcurrent);
 
         // Producer: read items and create batches
         var producer = Task.Run(async () =>
@@ -211,7 +211,7 @@ public static partial class AsyncEnumerableExtensions
         }, ct);
 
         // Consumers: process batches in parallel
-        var consumers = System.Linq.Enumerable.Range(0, maxConcurrency)
+        var consumers = System.Linq.Enumerable.Range(0, maxBatchesConcurrent)
             .Select(_ => Task.Run(async () =>
             {
                 await foreach (var batch in batchChannel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
